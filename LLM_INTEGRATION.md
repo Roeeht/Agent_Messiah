@@ -1,0 +1,289 @@
+# LLM Integration Guide
+
+Agent Messiah now supports **intelligent, natural conversations** using OpenAI's GPT models!
+
+## What's New
+
+Instead of rule-based responses, the agent can now:
+
+- 🧠 **Understand context** from the entire conversation
+- 💬 **Respond naturally** to any question or comment
+- 🎯 **Adapt dynamically** to lead responses
+- 🤖 **Make smart decisions** about when to offer meetings
+- 🇮🇱 **Speak natural Hebrew** like a real Israeli sales agent
+
+## Quick Start
+
+### 1. Get an OpenAI API Key
+
+1. Sign up at [platform.openai.com](https://platform.openai.com)
+2. Create an API key in your dashboard
+3. Copy the key (starts with `sk-proj-...`)
+
+### 2. Configure Environment
+
+```bash
+# Edit your .env file
+nano .env
+```
+
+Add your OpenAI configuration:
+
+```env
+# OpenAI API configuration
+OPENAI_API_KEY=sk-proj-your-actual-key-here
+OPENAI_MODEL=gpt-4o-mini  # Recommended for cost efficiency
+AGENT_MODE=llm  # Use "llm" for OpenAI, "rule" for rule-based
+```
+
+### 3. Test the Agent
+
+```bash
+# Start the server
+uvicorn app.main:app --reload
+
+# In another terminal, test a conversation
+curl -X POST "http://localhost:8000/agent/turn" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lead_id": 1,
+    "user_utterance": "שלום, מי אתה?",
+    "history": []
+  }'
+```
+
+You should get an intelligent response from GPT!
+
+## Model Options
+
+Choose the right model for your needs:
+
+| Model           | Cost          | Speed            | Quality              | Recommended For              |
+| --------------- | ------------- | ---------------- | -------------------- | ---------------------------- |
+| `gpt-4o-mini`   | 💰 Lowest     | ⚡ Fastest       | ⭐⭐⭐ Good          | **Production** (recommended) |
+| `gpt-4o`        | 💰💰 Medium   | ⚡⚡ Fast        | ⭐⭐⭐⭐⭐ Excellent | High-value leads             |
+| `gpt-4-turbo`   | 💰💰💰 Higher | ⚡⚡ Fast        | ⭐⭐⭐⭐⭐ Excellent | Complex conversations        |
+| `gpt-3.5-turbo` | 💰 Very Low   | ⚡⚡⚡ Very Fast | ⭐⭐ OK              | Testing only                 |
+
+**Our recommendation**: Use `gpt-4o-mini` for production. It's cost-effective (~15x cheaper than GPT-4) and performs excellently for sales conversations.
+
+## How It Works
+
+### System Prompt
+
+The agent is defined with a comprehensive system prompt that includes:
+
+- **Persona**: AI sales agent named "הסוכן" working for Alta
+- **Company info**: Alta provides AI solutions for SDR teams
+- **Conversation guidelines**: Natural Hebrew, short responses, professional but friendly
+- **Conversation flow**: Greeting → Pitch → Qualify → Offer Meeting → Book
+
+### Function Calling
+
+The agent can call these functions automatically:
+
+1. **`offer_meeting_slots`** - When lead shows strong interest
+2. **`book_meeting`** - When lead selects a time
+3. **`end_call`** - When lead is not interested or conversation is complete
+
+### Conversation Memory
+
+The agent maintains context by:
+
+- Receiving full conversation history with each turn
+- Understanding what was discussed earlier
+- Making coherent decisions based on the entire conversation
+- Adapting responses to the lead's tone and interest level
+
+## Example Conversations
+
+### Conversation 1: Successful Booking
+
+```bash
+# Turn 1
+User: "שלום"
+Agent: "היי! אני הסוכן מAlta. אנחנו עוזרים לחברות להגדיל מכירות עם סוכני AI. איך אתה מטפל היום בלידים נכנסים?"
+
+# Turn 2
+User: "יש לנו צוות SDR אבל הם לא מספיקים"
+Agent: "מבין! בדיוק בשביל זה פיתחנו את הפתרון שלנו. הסוכנים שלנו יכולים לטפל ב-80% מהלידים אוטומטית. אשמח להראות לך דמו קצר?"
+
+# Turn 3
+User: "כן, נשמע מעניין"
+Agent: "נשמע מצוין! אשמח לקבוע שיחת היכרות קצרה. יש לי זמינות מחר ב-10:00 או ביום חמישי ב-14:00. מה מתאים לך?"
+[Function called: offer_meeting_slots]
+
+# Turn 4
+User: "מחר בעשר"
+Agent: "מעולה! קבעתי לך פגישה למחר בשעה 10:00. שלחתי לך הזמנה ליומן. מצפה לשיחה!"
+[Function called: book_meeting]
+```
+
+### Conversation 2: Handling Objections
+
+```bash
+# Turn 1
+User: "כמה זה עולה?"
+Agent: "זה משתנה בהתאם לצרכים שלכם. אשמח לדבר איתך 15 דקות ולהבין מה מתאים בדיוק לחברה שלך. יש לך זמן מחר?"
+
+# Turn 2
+User: "אין לי תקציב לזה עכשיו"
+Agent: "מבין לגמרי. רוב הלקוחות שלנו רואים החזר השקעה תוך 3 חודשים כי הסוכנים משחררים את צוות המכירות לעסקות גדולות יותר. רוצה לשמוע איך זה עובד?"
+```
+
+### Conversation 3: Not Interested
+
+```bash
+User: "לא מעוניין, תודה"
+Agent: "מבין לגמרי. אם בעתיד תרצה לדבר, אשמח! יום טוב."
+[Function called: end_call]
+```
+
+## Voice Calling with LLM
+
+The LLM integration works seamlessly with voice calls:
+
+```bash
+# Initiate outbound call (uses LLM automatically)
+curl -X POST "http://localhost:8000/outbound/initiate-call?lead_id=1"
+```
+
+The agent will:
+
+1. Call the lead
+2. Speak the AI-generated greeting in Hebrew (Polly voice)
+3. Listen to responses using speech-to-text
+4. Use GPT to understand and respond naturally
+5. Continue until meeting is booked or call ends
+
+## Switching Between LLM and Rule-Based
+
+You can switch modes anytime:
+
+```env
+# Use LLM (natural conversations)
+AGENT_MODE=llm
+
+# Use rule-based (deterministic, no API costs)
+AGENT_MODE=rule
+```
+
+**When to use LLM mode:**
+
+- Production calling campaigns
+- Need natural conversation handling
+- Want to handle unexpected responses
+- Budget allows (~$0.002 per conversation)
+
+**When to use rule-based mode:**
+
+- Development/testing without API costs
+- Deterministic behavior required
+- Offline/air-gapped environments
+- Very high volume (>10K calls/day) where cost matters
+
+## Cost Estimation
+
+With `gpt-4o-mini`:
+
+- **Per conversation**: ~500 tokens = **$0.0015** (~0.5 cents)
+- **100 calls/day**: $0.15/day = **$4.50/month**
+- **1,000 calls/day**: $1.50/day = **$45/month**
+
+Compare to:
+
+- Twilio voice minutes: ~$0.02/minute
+- Human SDR: $30-50/hour
+
+The AI conversation cost is negligible compared to call costs!
+
+## Monitoring and Debugging
+
+### View Conversations
+
+All conversations are logged automatically. Check the server logs to see:
+
+- Full conversation history
+- Function calls made by the agent
+- Lead information
+- Response times
+
+### Common Issues
+
+**"OpenAI API error"**
+
+- Check your API key is correct
+- Verify you have credits in your OpenAI account
+- Check internet connection
+
+**"Agent not using LLM"**
+
+- Confirm `AGENT_MODE=llm` in .env
+- Verify `OPENAI_API_KEY` is set
+- Restart the server after changing .env
+
+**"Conversations not coherent"**
+
+- Ensure you're passing conversation history
+- Check token limits (max 150 tokens per response)
+- Try using a more powerful model (gpt-4o)
+
+## Advanced Configuration
+
+### Custom System Prompt
+
+Edit `app/llm_agent.py` to customize the agent's behavior:
+
+```python
+SYSTEM_PROMPT = """אתה סוכן מכירות AI בשם "הסוכן" שעובד עבור חברת Alta.
+
+[Your custom instructions here]
+"""
+```
+
+### Adjust Temperature
+
+Control creativity vs consistency:
+
+```python
+# In llm_agent.py decide_next_turn_llm()
+temperature=0.7,  # Lower = more consistent, Higher = more creative
+```
+
+### Change Token Limits
+
+Control response length:
+
+```python
+max_tokens=150,  # Increase for longer responses
+```
+
+## Testing
+
+Run the LLM tests:
+
+```bash
+pytest tests/test_llm_agent.py -v
+```
+
+All tests use mocked OpenAI responses, so they run without API costs.
+
+## Next Steps
+
+1. ✅ Configure your OpenAI API key
+2. ✅ Test with a few conversations
+3. ✅ Review conversation quality
+4. ✅ Adjust system prompt if needed
+5. ✅ Run a small campaign (10-20 calls)
+6. ✅ Monitor costs and results
+7. ✅ Scale up!
+
+## Support
+
+For issues or questions:
+
+- Check the [README.md](README.md) for general setup
+- Review [QUICKSTART.md](QUICKSTART.md) for basic usage
+- See [VOICE_CALLING_GUIDE.md](VOICE_CALLING_GUIDE.md) for Twilio integration
+
+Happy calling with AI! 🤖📞
