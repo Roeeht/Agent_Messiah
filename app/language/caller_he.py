@@ -11,7 +11,8 @@ from typing import Dict
 # Caller-facing messages in Hebrew
 CALLER_MESSAGES: Dict[str, str] = {
     # Greetings
-    "greeting_default": "שלום! אני הסוכן מAlta. אנחנו עוזרים לחברות להגדיל מכירות עם סוכני AI.",
+    "greeting_default": "שלום! אני הסוכן מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכנים חכמים."
+,
     "greeting_with_name": "שלום {name}! אני הסוכן מAlta. איך אתה?",
     
     # Prompts
@@ -36,31 +37,25 @@ CALLER_MESSAGES: Dict[str, str] = {
 def get_caller_text(key: str, **variables) -> str:
     """
     Get Hebrew text for caller.
-    
-    This is the ONLY function that returns Hebrew text.
-    
-    Args:
-        key: Message key from CALLER_MESSAGES
-        **variables: Template variables to format into the message
-    
-    Returns:
-        Hebrew text to speak to the caller
-    
-    Examples:
-        >>> get_caller_text("greeting_default")
-        'שלום! אני הסוכן מAlta...'
-        
-        >>> get_caller_text("greeting_with_name", name="רועי")
-        'שלום רועי! אני הסוכן מAlta...'
+    This function must NEVER return an empty string.
     """
-    template = CALLER_MESSAGES.get(key, "")
-    
-    if not template:
-        # Fallback to default greeting if key not found
-        template = CALLER_MESSAGES.get("greeting_default", "")
-    
+
+    template = CALLER_MESSAGES.get(key)
+
+    if not isinstance(template, str) or not template.strip():
+        template = CALLER_MESSAGES.get("greeting_default")
+
+    if not isinstance(template, str) or not template.strip():
+        # Absolute last resort, must never be empty
+        return "שלום"
+
     try:
-        return template.format(**variables) if variables else template
-    except KeyError as e:
-        # Missing template variable, return template as-is
-        return template
+        text = template.format(**variables) if variables else template
+    except Exception:
+        text = template
+
+    # Final guard
+    if not text.strip():
+        return "שלום"
+
+    return text

@@ -14,6 +14,16 @@ from app.config import config
 from app.language.caller_he import get_caller_text
 
 
+def _say_attrs() -> str:
+    language = (config.CALLER_LANGUAGE or "he-IL").strip()
+    voice = (getattr(config, "TWILIO_TTS_VOICE", "") or "").strip()
+
+    attrs = f'language="{saxutils.escape(language)}"'
+    if voice:
+        attrs += f' voice="{saxutils.escape(voice)}"'
+    return attrs
+
+
 def sanitize_say_text(text: str, fallback: str = "שלום") -> str:
     """
     Sanitize text for Twilio <Say> tags.
@@ -70,14 +80,17 @@ def build_voice_twiml(greeting_hebrew: str, call_sid: str, lead_id: int) -> str:
     # Build action URL (will be escaped when inserted into XML)
     action_url = f"{config.BASE_URL}/twilio/process-speech?call_sid={call_sid}&lead_id={lead_id}&turn=0"
     action_url_escaped = saxutils.escape(action_url)
+
+    say_attrs = _say_attrs()
+    gather_lang = saxutils.escape((config.CALLER_LANGUAGE or "he-IL").strip())
     
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="he-IL">{greeting_escaped}</Say>
-    <Gather input="speech" language="he-IL" speechTimeout="auto" timeout="10" action="{action_url_escaped}" method="POST">
-        <Say language="he-IL">{listening_prompt}</Say>
+    <Say {say_attrs}>{greeting_escaped}</Say>
+    <Gather input="speech" language="{gather_lang}" speechTimeout="auto" timeout="10" bargeIn="false" action="{action_url_escaped}" method="POST">
+        <Say {say_attrs}>{listening_prompt}</Say>
     </Gather>
-    <Say language="he-IL">{no_response}</Say>
+    <Say {say_attrs}>{no_response}</Say>
     <Hangup/>
 </Response>"""
 
@@ -93,10 +106,12 @@ def build_error_twiml(error_message_hebrew: str) -> str:
         TwiML XML string
     """
     msg_escaped = sanitize_say_text(error_message_hebrew)
+
+    say_attrs = _say_attrs()
     
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="he-IL">{msg_escaped}</Say>
+    <Say {say_attrs}>{msg_escaped}</Say>
     <Hangup/>
 </Response>"""
 
@@ -112,10 +127,12 @@ def build_hangup_twiml(final_message_hebrew: str) -> str:
         TwiML XML string
     """
     msg_escaped = sanitize_say_text(final_message_hebrew)
+
+    say_attrs = _say_attrs()
     
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="he-IL">{msg_escaped}</Say>
+    <Say {say_attrs}>{msg_escaped}</Say>
     <Hangup/>
 </Response>"""
 
@@ -140,14 +157,17 @@ def build_continue_twiml(agent_reply_hebrew: str, call_sid: str, lead_id: int, t
     # Build next action URL
     next_url = f"{config.BASE_URL}/twilio/process-speech?call_sid={call_sid}&lead_id={lead_id}&turn={turn+1}"
     next_url_escaped = saxutils.escape(next_url)
+
+    say_attrs = _say_attrs()
+    gather_lang = saxutils.escape((config.CALLER_LANGUAGE or "he-IL").strip())
     
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="he-IL">{reply_escaped}</Say>
-    <Gather input="speech" language="he-IL" speechTimeout="auto" timeout="10" action="{next_url_escaped}" method="POST">
-        <Say language="he-IL">{listening}</Say>
+    <Say {say_attrs}>{reply_escaped}</Say>
+    <Gather input="speech" language="{gather_lang}" speechTimeout="auto" timeout="10" bargeIn="false" action="{next_url_escaped}" method="POST">
+        <Say {say_attrs}>{listening}</Say>
     </Gather>
-    <Say language="he-IL">{disconnected}</Say>
+    <Say {say_attrs}>{disconnected}</Say>
     <Hangup/>
 </Response>"""
 
@@ -171,14 +191,17 @@ def build_offer_slots_twiml(slots_message_hebrew: str, call_sid: str, lead_id: i
     
     next_url = f"{config.BASE_URL}/twilio/process-speech?call_sid={call_sid}&lead_id={lead_id}&turn={turn+1}"
     next_url_escaped = saxutils.escape(next_url)
+
+    say_attrs = _say_attrs()
+    gather_lang = saxutils.escape((config.CALLER_LANGUAGE or "he-IL").strip())
     
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="he-IL">{slots_escaped}</Say>
-    <Gather input="speech" language="he-IL" speechTimeout="auto" timeout="10" action="{next_url_escaped}" method="POST">
-        <Say language="he-IL">{ask_time}</Say>
+    <Say {say_attrs}>{slots_escaped}</Say>
+    <Gather input="speech" language="{gather_lang}" speechTimeout="auto" timeout="10" bargeIn="false" action="{next_url_escaped}" method="POST">
+        <Say {say_attrs}>{ask_time}</Say>
     </Gather>
-    <Say language="he-IL">{contact_email}</Say>
+    <Say {say_attrs}>{contact_email}</Say>
     <Hangup/>
 </Response>"""
 
@@ -195,11 +218,13 @@ def build_meeting_confirmed_twiml(confirmation_message_hebrew: str) -> str:
     """
     msg_escaped = sanitize_say_text(confirmation_message_hebrew)
     follow_up = sanitize_say_text(get_caller_text("meeting_confirmed"))
+
+    say_attrs = _say_attrs()
     
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="he-IL">{msg_escaped}</Say>
+    <Say {say_attrs}>{msg_escaped}</Say>
     <Pause length="1"/>
-    <Say language="he-IL">{follow_up}</Say>
+    <Say {say_attrs}>{follow_up}</Say>
     <Hangup/>
 </Response>"""

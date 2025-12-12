@@ -39,6 +39,13 @@ class Config:
     CALLER_LANGUAGE: str = os.getenv("CALLER_LANGUAGE", "he-IL")  # Language spoken to caller
     INTERNAL_LANGUAGE: str = os.getenv("INTERNAL_LANGUAGE", "en")  # Language for logs/state/LLM
     ENABLE_TRANSLATION: bool = os.getenv("ENABLE_TRANSLATION", "True").lower() == "true"  # Use OpenAI for translation
+
+    # Twilio TTS voice (important for Hebrew):
+    # If no voice is specified, Twilio may use a default voice that doesn't support Hebrew well.
+    TWILIO_TTS_VOICE: str = os.getenv(
+        "TWILIO_TTS_VOICE",
+        "Google.he-IL-Standard-A" if CALLER_LANGUAGE.startswith("he") else "",
+    )
     
     # Security
     API_KEY: str = os.getenv("API_KEY", "")  # For API authentication

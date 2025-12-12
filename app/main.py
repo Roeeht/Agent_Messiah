@@ -315,6 +315,29 @@ async def twilio_voice(request: Request):
                 english_greeting = "Hello! I'm the agent from Alta. We help companies increase sales with AI agents. Who am I speaking with?"
         
         logger.info("greeting_generated_english", greeting=english_greeting[:100])
+
+        # Guardrail: if the LLM returns an unhelpful one-word greeting, fall back
+        # to a deterministic greeting that includes value prop + a question.
+        greeting_words = [w for w in (english_greeting or "").strip().split() if w]
+        if len((english_greeting or "").strip()) < 20 or len(greeting_words) < 4:
+            logger.warning(
+                "greeting_too_short_fallback",
+                greeting_repr=repr(english_greeting),
+                greeting_len=len(english_greeting or ""),
+                greeting_words=len(greeting_words),
+            )
+            if lead:
+                first_name = lead.name.split()[0]
+                english_greeting = (
+                    f"Hi {first_name}! I'm the agent from Alta. We help companies increase sales with AI agents. "
+                    "How do you handle inbound leads today?"
+                )
+            else:
+                english_greeting = (
+                    "Hello! I'm the agent from Alta. We help companies increase sales with AI agents. "
+                    "How do you handle inbound leads today?"
+                )
+            logger.info("greeting_fallback_applied", greeting=english_greeting[:100])
         
         # Translate to Hebrew for caller
         hebrew_greeting = translate_en_to_he(english_greeting)
