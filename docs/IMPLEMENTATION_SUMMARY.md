@@ -54,7 +54,7 @@ All requirements have been successfully implemented for **Agent Messiah** - a He
   - `POST /twilio/call-status` - Call status tracking
 
 - **Voice Features**:
-  - AWS Polly (Ayelet voice) for Hebrew text-to-speech
+  - Hebrew TTS via Twilio `<Say>` using a Hebrew-capable voice (configurable via `TWILIO_TTS_VOICE`)
   - Automatic speech recognition for Hebrew
   - Lead recognition by caller phone number
   - Dynamic TwiML generation based on conversation state
@@ -82,23 +82,25 @@ Complete conversation flow implemented:
 3. If positive: offer 2 future time slots
 4. On slot selection: book meeting and provide calendar link
 5. If not interested: polite goodbye
-6. All in natural, conversational Hebrew
+6. Caller-facing messages are in natural, conversational Hebrew (internal agent runs in English in `AGENT_MODE=llm`)
 
 ### 6. Configuration ✓
 
 - `app/config.py` - Environment variable management
 - `.env.example` - Template with all required variables
 - Supports:
-  - `OPENAI_API_KEY` - For future LLM integration
+  - `OPENAI_API_KEY` - LLM + translation (when enabled)
   - `TWILIO_ACCOUNT_SID` - Twilio account identifier
   - `TWILIO_AUTH_TOKEN` - Twilio authentication
   - `TWILIO_CALLER_ID` - Outbound calling phone number
   - `BASE_URL` - For webhook URLs (ngrok in development)
+  - `CALLER_LANGUAGE`, `INTERNAL_LANGUAGE`, `ENABLE_TRANSLATION` - Language separation settings
+  - `TWILIO_TTS_VOICE` - Optional Twilio voice override
 - No hardcoded secrets
 
 ### 7. Tests ✓
 
-**31/31 tests passing!**
+Test suite included (see `tests/`).
 
 - `tests/test_agent_logic.py` (6 tests):
 
@@ -152,17 +154,17 @@ The project **fully satisfies** the assignment requirement:
 > "Alta want to run an outbound calling campaign in Hebrew, capable of pitch the value proposition and booking meetings for the sales team"
 
 ✅ **Outbound calling campaign**: Implemented via `/outbound/campaign` endpoint  
-✅ **Hebrew**: All conversations in natural Israeli Hebrew  
+✅ **Hebrew**: Caller-facing conversation is in natural Israeli Hebrew  
 ✅ **Pitch value proposition**: Alta's AI SDR solution pitch in agent logic  
 ✅ **Book meetings**: Complete flow from slot offering to meeting confirmation
 
 ## 📊 Technical Stats
 
 - **Lines of Code**: ~1,200 (excluding tests)
-- **Test Coverage**: 31 comprehensive tests
-- **Languages**: Python 3.13
+- **Tests**: Included (see `tests/`)
+- **Languages**: Python 3.10+
 - **Framework**: FastAPI
-- **Voice**: Twilio + AWS Polly (Ayelet)
+- **Voice**: Twilio Voice (TwiML `<Say>` with a Hebrew-capable voice)
 - **Dependencies**: 9 packages (all in requirements.txt)
 
 ## 🚀 Ready for Production
@@ -179,7 +181,7 @@ To deploy to production:
 
 ## 💡 Key Design Decisions
 
-1. **Rule-based agent logic**: Chose deterministic rules over LLM for reliability and cost
+1. **Hybrid agent logic**: LLM agent (English-only) with rule-based fallback
 2. **In-memory storage**: Simplified testing and demo; easy to swap for database
 3. **Twilio integration**: Industry standard for telephony with excellent Hebrew support
 4. **TwiML approach**: Dynamic XML generation for flexible conversation flow
@@ -211,12 +213,12 @@ To deploy to production:
   - Production roadmap
 
 - **PLANNING.md** - Project planning document
-- **test_api.py** - Manual API testing script
+- **scripts/manual_test_api.py** - Manual API testing script
 
 ### 8. Telephony Integration (Twilio) ✓
 
 - Basic webhook endpoints created
-- TwiML responses with Hebrew voice (Polly.Ayelet)
+- TwiML responses with Hebrew voice via Twilio `<Say>` (see `TWILIO_TTS_VOICE`)
 - Detailed comments for full implementation
 - Ready for expansion
 
@@ -226,11 +228,7 @@ To deploy to production:
 pytest -v
 ```
 
-```
-31 passed in 0.65s
-```
-
-All tests pass successfully!
+See `pytest -v` output for current results.
 
 ## 🚀 How to Run
 

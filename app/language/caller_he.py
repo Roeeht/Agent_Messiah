@@ -14,14 +14,19 @@ CALLER_MESSAGES: Dict[str, str] = {
     "greeting_default": "שלום! אני הסוכן מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכנים חכמים."
 ,
     "greeting_with_name": "שלום {name}! אני הסוכן מAlta. איך אתה?",
+
+    # Generic short fallback
+    "fallback_short": "שלום",
     
     # Prompts
-    "listening": "אני מקשיבה",
     "ask_time": "איזה זמן מתאים לך?",
     
     # No response scenarios
     "no_response": "מצטערת, לא שמעתי תשובה. תודה ושיהיה יום נהדר!",
     "no_response_retry": "מצטערת, לא שמעתי תשובה. אם תרצה לדבר, תתקשר שוב. יום טוב!",
+
+    # ASR fallback (when speech recognition is unreliable)
+    "asr_retry_recording": "לא הצלחתי להבין. בבקשה תגיד שוב.",
     
     # Errors
     "technical_error": "מצטערים, ישנה בעיה טכנית. ננסה שוב מאוחר יותר. להתראות!",
@@ -32,6 +37,21 @@ CALLER_MESSAGES: Dict[str, str] = {
     "contact_by_email": "נהיה בקשר במייל. תודה!",
     "disconnected": "נראה שהקו התנתק. נהיה בקשר. תודה!",
 }
+
+
+def get_not_interested_phrases() -> list[str]:
+    """Hebrew phrases that indicate the lead is not interested.
+
+    Kept here so Hebrew text stays in approved files.
+    """
+    return [
+        "לא מעוניין",
+        "לא רלוונטי",
+        "לא מתאים",
+        "תוריד",
+        "תסיר",
+        "אל תתקשר",
+    ]
 
 
 def get_caller_text(key: str, **variables) -> str:

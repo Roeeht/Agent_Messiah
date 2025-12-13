@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
 ```bash
 pytest -v
-# ✅ All 20 tests should pass
+# ✅ Test suite should pass
 ```
 
 ## Start Server (5 seconds)
@@ -52,6 +52,8 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
   "action_payload": null
 }
 ```
+
+Note: In `AGENT_MODE=llm`, the agent reply is English-only by design. For the Hebrew caller experience, use the Twilio voice flow (the server translates HE↔EN around the LLM).
 
 ### Example 2: "Who are you?"
 
@@ -151,7 +153,7 @@ curl -X POST http://127.0.0.1:8000/twilio/voice
 For interactive testing (requires server to be running):
 
 ```bash
-python manual_test_api.py
+python scripts/manual_test_api.py
 ```
 
 ## Using the Interactive API Docs
@@ -196,7 +198,7 @@ Agent_Messiah/
 
 ## Next Steps
 
-- See [README.md](README.md) for complete documentation
+- See [README.md](../README.md) for complete documentation
 - See [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for what's been built
 - See [PLANNING.md](PLANNING.md) for project planning details
 

@@ -24,6 +24,16 @@ def configure_logging():
         stream=sys.stdout,
         level=getattr(logging, config.LOG_LEVEL),
     )
+
+    # Reduce noise from HTTP client libraries (they log every request at INFO).
+    for noisy_logger in [
+        "httpx",
+        "httpcore",
+        "openai",
+        "twilio",
+        "urllib3",
+    ]:
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
     
     # Common processors for all environments
     processors = [

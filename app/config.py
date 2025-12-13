@@ -34,6 +34,26 @@ class Config:
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")  # For webhooks - use ngrok URL in production
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+
+    # Optional: log caller/agent transcript to console.
+    # Keep disabled by default (may include sensitive content).
+    LOG_CALL_TRANSCRIPT: bool = os.getenv("LOG_CALL_TRANSCRIPT", "False").lower() == "true"
+    LOG_CALL_TRANSCRIPT_MAX_CHARS: int = int(os.getenv("LOG_CALL_TRANSCRIPT_MAX_CHARS", "500"))
+
+    # Voice Debugging (development / controlled environments only)
+    # When enabled, Twilio webhooks will store per-call debug events in the session store.
+    # This can include raw caller speech and agent replies.
+    DEBUG_CALL_EVENTS: bool = os.getenv("DEBUG_CALL_EVENTS", "False").lower() == "true"
+    DEBUG_CALL_EVENTS_MAX: int = int(os.getenv("DEBUG_CALL_EVENTS_MAX", "200"))
+
+    # ASR / Speech input behavior
+    # Hebrew voice input: we use Twilio <Record> + OpenAI transcription as the default path.
+    # (Twilio <Gather input="speech"> can misrecognize Hebrew as English-like gibberish.)
+    HEBREW_ASR_FALLBACK_TO_RECORDING: bool = os.getenv("HEBREW_ASR_FALLBACK_TO_RECORDING", "True").lower() == "true"
+    RECORD_MAX_LENGTH_SECONDS: int = int(os.getenv("RECORD_MAX_LENGTH_SECONDS", "15"))
+
+    # OpenAI transcription model for recorded audio
+    OPENAI_TRANSCRIBE_MODEL: str = os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
     
     # Language Configuration
     CALLER_LANGUAGE: str = os.getenv("CALLER_LANGUAGE", "he-IL")  # Language spoken to caller
@@ -71,6 +91,11 @@ class Config:
             cls.TWILIO_AUTH_TOKEN,
             cls.TWILIO_CALLER_ID
         ])
+
+    @classmethod
+    def has_twilio_auth(cls) -> bool:
+        """Check if Twilio auth is available (for fetching recordings, etc.)."""
+        return bool(cls.TWILIO_ACCOUNT_SID and cls.TWILIO_AUTH_TOKEN)
 
 
 # Create a global config instance

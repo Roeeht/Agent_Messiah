@@ -33,6 +33,14 @@ TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=your_auth_token_here
 TWILIO_CALLER_ID=+1234567890
 BASE_URL=https://your-ngrok-url.ngrok.io  # Set this after step 3
+
+# Language / voice (recommended defaults)
+CALLER_LANGUAGE=he-IL
+INTERNAL_LANGUAGE=en
+ENABLE_TRANSLATION=True
+
+# Hebrew-capable Twilio TTS voice (optional; defaults to a Hebrew Google voice when CALLER_LANGUAGE starts with "he")
+TWILIO_TTS_VOICE=Google.he-IL-Standard-A
 ```
 
 ### 3. Start the Server
@@ -74,7 +82,7 @@ uvicorn app.main:app --reload
 
 ### 5. Add a Test Lead
 
-The project comes with 2 sample leads. To add your own:
+The project comes with a few sample leads. To add your own:
 
 Edit `app/leads_store.py`:
 
@@ -146,7 +154,10 @@ All leads will receive calls!
 
 1. **Phone Rings**: Lead receives call from your Twilio number
 
-2. **Agent Greeting** (Hebrew, AWS Polly Ayelet voice):
+2. **Agent Greeting** (Hebrew)
+
+   The greeting is generated in English (internally), translated to Hebrew, and spoken via Twilio `<Say>`.
+   The TTS voice is controlled by `TWILIO_TTS_VOICE` (default: `Google.he-IL-Standard-A` for Hebrew).
 
    ```
    "היי [Name]! אני מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכני AI.
@@ -155,14 +166,20 @@ All leads will receive calls!
 
 3. **Speech Recognition**: Twilio listens for Hebrew response
 
-4. **Conversation Flow**:
+4. **Language Pipeline**:
+
+   - Caller speech (Hebrew) → HE→EN translation
+   - Agent logic/LLM runs in English
+   - EN→HE translation → spoken back to the caller
+
+5. **Conversation Flow**:
 
    - If interested → Qualifying questions
    - If very interested → Offer time slots
    - If selects slot → Book meeting
    - If not interested → Polite goodbye
 
-5. **Meeting Confirmation** (if booked):
+6. **Meeting Confirmation** (if booked):
    ```
    "מעולה! קבעתי לך פגישה ל[date] בשעה [time].
    שלחתי לך הזמנה ליומן. מצפה לשיחה!"
@@ -231,7 +248,8 @@ Check that:
 
 - Check Twilio console → Debugger for TwiML errors
 - Verify TwiML is being generated (check server logs)
-- Ensure AWS Polly voice "Ayelet" is supported in your region
+- If you set `TWILIO_TTS_VOICE`, verify it matches the caller language (e.g. Hebrew voice for `he-IL`)
+- Confirm your webhook response is valid TwiML XML and served as `application/xml`
 
 ### Speech Not Recognized
 
@@ -284,8 +302,7 @@ Watch the terminal running `uvicorn` for real-time webhook calls and TwiML gener
 
 - Outbound calls: $0.013 - $0.02/minute
 - Phone number: $1/month
-- AWS Polly TTS: $4 per 1M characters
-- Speech-to-Text: Included with Twilio voice
+- Text-to-Speech and Speech-to-Text: Billed by Twilio (see your Twilio voice pricing for exact rates)
 
 ## Production Deployment
 

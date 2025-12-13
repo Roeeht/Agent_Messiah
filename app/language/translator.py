@@ -53,16 +53,17 @@ def translate_he_to_en(hebrew_text: str) -> str:
         >>> translate_he_to_en("אני רוצה לקבוע פגישה")
         "I want to schedule a meeting"
     """
-    if not hebrew_text or not hebrew_text.strip():
-        return "[empty speech]"
+    t = (hebrew_text or "").strip()
+    if not t:
+        return ""
     
     # Check if translation is enabled and OpenAI is configured
     if not config.ENABLE_TRANSLATION:
-        return f"[Hebrew speech not translated: {hebrew_text[:50]}...]"
+        return t
     
     client = _get_openai_client()
     if not client:
-        return f"[Hebrew speech - translation unavailable: {hebrew_text[:50]}...]"
+        return t
     
     try:
         response = client.chat.completions.create(
@@ -77,16 +78,40 @@ def translate_he_to_en(hebrew_text: str) -> str:
                     "content": hebrew_text
                 }
             ],
-            temperature=0.3,
+            temperature=0.2,
             max_tokens=200
         )
-        
-        return response.choices[0].message.content or "[translation failed]"
+
+        translated = (response.choices[0].message.content or "").strip()
+
+        # Sometimes the model may respond in Hebrew. Retry with a stricter prompt.
+        if translated and HEBREW_RE.search(translated):
+            response2 = client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Translate Hebrew to English. Output ENGLISH ONLY (no Hebrew characters). Output only the translation text."
+                    },
+                    {
+                        "role": "user",
+                        "content": hebrew_text
+                    }
+                ],
+                temperature=0.0,
+                max_tokens=200
+            )
+            translated2 = (response2.choices[0].message.content or "").strip()
+            if translated2 and not HEBREW_RE.search(translated2):
+                return translated2
+
+        # If translation is empty or still Hebrew, fall back to original Hebrew.
+        return translated or t
         
     except Exception as e:
         # Log error but don't crash
         print(f"Translation error (HE→EN): {e}")
-        return f"[Hebrew speech - translation error: {hebrew_text[:50]}...]"
+        return t
 
 
 def translate_en_to_he(english_text: str) -> str:

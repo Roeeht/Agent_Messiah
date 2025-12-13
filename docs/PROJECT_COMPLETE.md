@@ -15,7 +15,7 @@ A complete Hebrew-speaking AI sales agent with:
 ### 🎯 Core Features
 
 - ✅ **Outbound calling** via Twilio integration
-- ✅ **Hebrew conversations** using AWS Polly (Ayelet voice)
+- ✅ **Hebrew conversations** for callers (Twilio Voice + translation pipeline)
 - ✅ **Value proposition pitch** for Alta's AI SDR solutions
 - ✅ **Meeting booking** with automatic calendar scheduling
 - ✅ **Campaign mode** to call multiple leads
@@ -35,8 +35,8 @@ A complete Hebrew-speaking AI sales agent with:
 - **Language**: Python 3.13
 - **Framework**: FastAPI
 - **Telephony**: Twilio with TwiML
-- **Voice**: AWS Polly (Ayelet - Israeli Hebrew female voice)
-- **Testing**: 31 comprehensive tests (100% pass rate)
+- **Voice**: Twilio `<Say>` using a Hebrew-capable voice (configurable via `TWILIO_TTS_VOICE`)
+- **Testing**: Included test suite
 - **Architecture**: Clean, modular, production-ready
 
 ## File Structure
@@ -56,9 +56,11 @@ Agent_Messiah/
 │   ├── test_api_routes.py      # 10 tests - API endpoints
 │   └── test_voice_calling.py   # 10 tests - voice integration
 ├── README.md                    # Full documentation
-├── QUICKSTART.md               # 2-minute setup guide
-├── VOICE_CALLING_GUIDE.md      # Detailed voice setup
-├── IMPLEMENTATION_SUMMARY.md    # Technical details
+├── docs/                       # Additional documentation
+│   ├── QUICKSTART.md
+│   ├── VOICE_CALLING_GUIDE.md
+│   └── IMPLEMENTATION_SUMMARY.md
+├── scripts/                    # Helper scripts
 ├── requirements.txt             # Dependencies
 └── .env.example                # Configuration template
 ```
@@ -85,7 +87,7 @@ Agent_Messiah/
 $ pytest -v
 ```
 
-**Result: 31/31 tests PASSED ✅**
+Run `pytest -v` to see current results.
 
 - Agent logic: 6/6 ✅
 - Calendar: 5/5 ✅
@@ -173,7 +175,7 @@ pytest -v
 
 ## Documentation
 
-- **[README.md](README.md)** - Complete project documentation
+- **[README.md](../README.md)** - Complete project documentation
 - **[QUICKSTART.md](QUICKSTART.md)** - Fast setup guide
 - **[VOICE_CALLING_GUIDE.md](VOICE_CALLING_GUIDE.md)** - Detailed Twilio setup
 - **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Technical details
@@ -191,11 +193,11 @@ pytest -v
 
 ## Technologies Used
 
-- **Python 3.13** - Modern Python
+- **Python 3.10+** - Modern Python
 - **FastAPI** - High-performance web framework
 - **Pydantic 2.9+** - Data validation
 - **Twilio** - Telephony platform
-- **AWS Polly** - Hebrew text-to-speech
+- **Twilio `<Say>`** - Hebrew text-to-speech (voice configurable)
 - **pytest** - Testing framework
 - **uvicorn** - ASGI server
 

@@ -85,7 +85,7 @@ curl http://localhost:8000/metrics
 
 ### 1. System Requirements
 
-- Python 3.13+
+- Python 3.10+
 - PostgreSQL 14+
 - Redis 7+
 - 512MB RAM minimum, 2GB recommended
@@ -144,7 +144,7 @@ git clone <your-repo>
 cd Agent_Messiah
 
 # Create virtual environment
-python3.13 -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
@@ -204,6 +204,12 @@ LOG_LEVEL=INFO             # Log level (DEBUG, INFO, WARNING, ERROR)
 # Security
 API_KEY=your_secret_key    # API key for protected endpoints
 WEBHOOK_SECRET=...         # Webhook validation secret
+
+# Language / voice
+CALLER_LANGUAGE=he-IL
+INTERNAL_LANGUAGE=en
+ENABLE_TRANSLATION=True
+TWILIO_TTS_VOICE=Google.he-IL-Standard-A
 ```
 
 ## Production Checklist

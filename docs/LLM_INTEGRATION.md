@@ -10,7 +10,7 @@ Instead of rule-based responses, the agent can now:
 - 💬 **Respond naturally** to any question or comment
 - 🎯 **Adapt dynamically** to lead responses
 - 🤖 **Make smart decisions** about when to offer meetings
-- 🇮🇱 **Speak natural Hebrew** like a real Israeli sales agent
+- 🌍 **Keep the agent English-only internally** and translate to Hebrew for callers
 
 ## Quick Start
 
@@ -47,7 +47,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "שלום, מי אתה?",
+    "user_utterance": "Hi, who is this?",
     "history": []
   }'
 ```
@@ -73,9 +73,10 @@ Choose the right model for your needs:
 
 The agent is defined with a comprehensive system prompt that includes:
 
-- **Persona**: AI sales agent named "הסוכן" working for Alta
+- **Persona**: AI sales agent (English internally) working for Alta
 - **Company info**: Alta provides AI solutions for SDR teams
-- **Conversation guidelines**: Natural Hebrew, short responses, professional but friendly
+- **Conversation guidelines**: Short, professional, friendly
+- **Critical language rule**: The model output must be English-only (caller Hebrew is produced by translation)
 - **Conversation flow**: Greeting → Pitch → Qualify → Offer Meeting → Book
 
 ### Function Calling
@@ -97,25 +98,27 @@ The agent maintains context by:
 
 ## Example Conversations
 
+Note: In `AGENT_MODE=llm`, the LLM outputs English-only. In the Twilio voice flow, user speech is translated HE→EN before the LLM, and replies are translated EN→HE for the caller.
+
 ### Conversation 1: Successful Booking
 
 ```bash
 # Turn 1
-User: "שלום"
-Agent: "היי! אני הסוכן מAlta. אנחנו עוזרים לחברות להגדיל מכירות עם סוכני AI. איך אתה מטפל היום בלידים נכנסים?"
+User: "Hello"
+Agent: "Hi! I'm the agent from Alta. We help companies increase sales with AI agents. How do you handle inbound leads today?"
 
 # Turn 2
-User: "יש לנו צוות SDR אבל הם לא מספיקים"
-Agent: "מבין! בדיוק בשביל זה פיתחנו את הפתרון שלנו. הסוכנים שלנו יכולים לטפל ב-80% מהלידים אוטומטית. אשמח להראות לך דמו קצר?"
+User: "We have an SDR team but they're overloaded"
+Agent: "Got it. That's exactly what we help with — our AI agents handle the initial lead response so your team can focus on the best opportunities. Want to see a quick demo?"
 
 # Turn 3
-User: "כן, נשמע מעניין"
-Agent: "נשמע מצוין! אשמח לקבוע שיחת היכרות קצרה. יש לי זמינות מחר ב-10:00 או ביום חמישי ב-14:00. מה מתאים לך?"
+User: "Yes, sounds interesting"
+Agent: "Great. I'd be happy to schedule a short intro call. I have availability tomorrow at 10:00 or Thursday at 14:00. What works for you?"
 [Function called: offer_meeting_slots]
 
 # Turn 4
-User: "מחר בעשר"
-Agent: "מעולה! קבעתי לך פגישה למחר בשעה 10:00. שלחתי לך הזמנה ליומן. מצפה לשיחה!"
+User: "Tomorrow at 10 works"
+Agent: "Excellent! I've scheduled a meeting for tomorrow at 10:00. I'll send you a calendar invitation. Looking forward to the call!"
 [Function called: book_meeting]
 ```
 
@@ -123,19 +126,19 @@ Agent: "מעולה! קבעתי לך פגישה למחר בשעה 10:00. שלחת
 
 ```bash
 # Turn 1
-User: "כמה זה עולה?"
-Agent: "זה משתנה בהתאם לצרכים שלכם. אשמח לדבר איתך 15 דקות ולהבין מה מתאים בדיוק לחברה שלך. יש לך זמן מחר?"
+User: "How much does it cost?"
+Agent: "It depends on your needs. I'd be happy to do a quick 15-minute intro to understand your process and share options. Do you have time tomorrow?"
 
 # Turn 2
-User: "אין לי תקציב לזה עכשיו"
-Agent: "מבין לגמרי. רוב הלקוחות שלנו רואים החזר השקעה תוך 3 חודשים כי הסוכנים משחררים את צוות המכירות לעסקות גדולות יותר. רוצה לשמוע איך זה עובד?"
+User: "We don't have budget right now"
+Agent: "Totally understand. Many teams see ROI quickly because the agents free up sales to focus on larger deals. Want to hear how it typically works?"
 ```
 
 ### Conversation 3: Not Interested
 
 ```bash
-User: "לא מעוניין, תודה"
-Agent: "מבין לגמרי. אם בעתיד תרצה לדבר, אשמח! יום טוב."
+User: "Not interested, thanks"
+Agent: "Understood. If it makes sense to revisit in the future, I'd be happy to chat. Have a great day."
 [Function called: end_call]
 ```
 
@@ -151,7 +154,7 @@ curl -X POST "http://localhost:8000/outbound/initiate-call?lead_id=1"
 The agent will:
 
 1. Call the lead
-2. Speak the AI-generated greeting in Hebrew (Polly voice)
+2. Generate the greeting in English, translate it to Hebrew, and speak it via Twilio `<Say>`
 3. Listen to responses using speech-to-text
 4. Use GPT to understand and respond naturally
 5. Continue until meeting is booked or call ends
@@ -186,8 +189,8 @@ AGENT_MODE=rule
 
 With `gpt-4o-mini`:
 
-- **Per conversation**: ~500 tokens = **$0.0015** (~0.5 cents)
-- **100 calls/day**: $0.15/day = **$4.50/month**
+- Costs vary by prompt size, token usage, and translation settings.
+- Measure actual usage in your logs and OpenAI usage dashboard before scaling campaigns.
 - **1,000 calls/day**: $1.50/day = **$45/month**
 
 Compare to:
@@ -282,7 +285,7 @@ All tests use mocked OpenAI responses, so they run without API costs.
 
 For issues or questions:
 
-- Check the [README.md](README.md) for general setup
+- Check the [README.md](../README.md) for general setup
 - Review [QUICKSTART.md](QUICKSTART.md) for basic usage
 - See [VOICE_CALLING_GUIDE.md](VOICE_CALLING_GUIDE.md) for Twilio integration
 

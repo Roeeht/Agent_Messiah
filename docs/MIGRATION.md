@@ -15,6 +15,7 @@ Agent Messiah has been upgraded from an MVP to a production-ready system. Here's
 - Full transaction support
 
 **Migration**:
+
 ```bash
 # Initialize database
 alembic upgrade head
@@ -33,6 +34,7 @@ alembic upgrade head
 - Supports distributed deployments
 
 **Setup**:
+
 ```bash
 # Install Redis
 brew install redis  # macOS
@@ -54,6 +56,7 @@ sudo systemctl start redis-server  # Ubuntu
 - Log aggregation ready
 
 **Example logs**:
+
 ```json
 {
   "event": "call_initiated",
@@ -85,6 +88,7 @@ sudo systemctl start redis-server  # Ubuntu
 - Sensitive data masking in logs
 
 **Setup**:
+
 ```bash
 # Add to .env
 API_KEY=your_secret_api_key
@@ -102,6 +106,7 @@ WEBHOOK_SECRET=your_webhook_secret
 - Distributed workers
 
 **Start worker**:
+
 ```bash
 celery -A app.celery_tasks worker --loglevel=info
 ```
@@ -117,6 +122,7 @@ celery -A app.celery_tasks worker --loglevel=info
 - Health checks and auto-restart
 
 **Quick start**:
+
 ```bash
 docker-compose up -d
 ```
@@ -128,31 +134,33 @@ docker-compose up -d
 The conversation history format now supports both formats:
 
 **Old format** (still works):
+
 ```json
 {
-  "history": [
-    {"user": "שלום", "agent": "היי!"}
-  ]
+  "history": [{ "user": "שלום", "agent": "היי!" }]
 }
 ```
 
 **New format** (preferred):
+
 ```json
 {
   "history": [
-    {"role": "user", "content": "שלום"},
-    {"role": "assistant", "content": "היי!"}
+    { "role": "user", "content": "שלום" },
+    { "role": "assistant", "content": "היי!" }
   ]
 }
 ```
 
 ### Environment Variables
 
-New required variables:
-- `DATABASE_URL` - Database connection string
-- `REDIS_URL` - Redis connection string
+Recommended production variables:
+
+- `DATABASE_URL` - Database connection string (defaults to SQLite for local/dev)
+- `REDIS_URL` - Redis connection string (optional in local/dev)
 
 New optional variables:
+
 - `LOG_LEVEL` - Logging level
 - `API_KEY` - API authentication
 - `WEBHOOK_SECRET` - Webhook validation
@@ -164,27 +172,32 @@ New optional variables:
 If you're running the MVP locally:
 
 1. **Install dependencies**:
+
    ```bash
    pip install -r requirements.txt
    ```
 
 2. **Set up PostgreSQL**:
+
    ```bash
    createdb agent_messiah
    ```
 
 3. **Set up Redis**:
+
    ```bash
    brew install redis && brew services start redis
    ```
 
 4. **Update .env**:
+
    ```bash
    cp .env.example .env
-   # Add DATABASE_URL and REDIS_URL
+   # Optionally add DATABASE_URL and REDIS_URL for full production mode
    ```
 
 5. **Run migrations**:
+
    ```bash
    alembic upgrade head
    ```
@@ -197,12 +210,14 @@ If you're running the MVP locally:
 ### Using Docker (Recommended)
 
 1. **Configure environment**:
+
    ```bash
    cp .env.docker.example .env.docker
    # Edit .env.docker with your credentials
    ```
 
 2. **Start services**:
+
    ```bash
    docker-compose up -d
    ```
@@ -214,18 +229,18 @@ If you're running the MVP locally:
 
 ## Feature Comparison
 
-| Feature | MVP | Production |
-|---------|-----|------------|
-| Data Persistence | ❌ In-memory | ✅ PostgreSQL |
-| Session Management | ❌ None | ✅ Redis |
-| Logging | ⚠️ Basic | ✅ Structured JSON |
-| Health Checks | ❌ None | ✅ Full suite |
-| Metrics | ❌ None | ✅ Prometheus |
-| Security | ❌ None | ✅ Auth + Validation |
-| Async Tasks | ❌ Synchronous | ✅ Celery |
-| Docker Support | ❌ None | ✅ Full |
-| Monitoring | ❌ None | ✅ Logs + Metrics |
-| Scalability | ❌ Single instance | ✅ Horizontal scaling |
+| Feature            | MVP                | Production            |
+| ------------------ | ------------------ | --------------------- |
+| Data Persistence   | ❌ In-memory       | ✅ PostgreSQL         |
+| Session Management | ❌ None            | ✅ Redis              |
+| Logging            | ⚠️ Basic           | ✅ Structured JSON    |
+| Health Checks      | ❌ None            | ✅ Full suite         |
+| Metrics            | ❌ None            | ✅ Prometheus         |
+| Security           | ❌ None            | ✅ Auth + Validation  |
+| Async Tasks        | ❌ Synchronous     | ✅ Celery             |
+| Docker Support     | ❌ None            | ✅ Full               |
+| Monitoring         | ❌ None            | ✅ Logs + Metrics     |
+| Scalability        | ❌ Single instance | ✅ Horizontal scaling |
 
 ## Performance Improvements
 
@@ -248,11 +263,13 @@ If you're running the MVP locally:
 ## Next Steps
 
 1. **Deploy to production**:
+
    - Set up on cloud provider (AWS, GCP, Azure)
    - Configure domain and SSL
    - Set up monitoring (Prometheus + Grafana)
 
 2. **Scale horizontally**:
+
    - Add more app instances behind load balancer
    - Scale Celery workers based on load
    - Enable Redis clustering
@@ -266,6 +283,7 @@ If you're running the MVP locally:
 ## Support
 
 For issues or questions:
+
 - Check logs: `docker-compose logs -f app`
 - Health status: `curl http://localhost:8000/health/ready`
 - Metrics: `curl http://localhost:8000/metrics`
@@ -275,11 +293,13 @@ For issues or questions:
 If you need to rollback to MVP:
 
 1. Stop new services:
+
    ```bash
    docker-compose down
    ```
 
 2. Checkout previous commit:
+
    ```bash
    git checkout <mvp-commit-hash>
    ```

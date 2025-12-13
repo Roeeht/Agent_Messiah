@@ -54,12 +54,13 @@ def demo_conversation():
     print_header("Conversation Start")
     
     # Demo scenario: Successful meeting booking
+    # Note: keep this file free of Hebrew characters (language separation test).
     demo_turns = [
-        "שלום, מי אתה?",
-        "נשמע מעניין, ספר לי עוד",
-        "יש לנו צוות SDR אבל הם עמוסים מאוד",
-        "כן, אשמח לשמוע יותר במפגש",
-        "מחר ב-10 מתאים לי",
+        "Hi, who is this?",
+        "Sounds interesting, tell me more",
+        "We have an SDR team but they are very busy",
+        "Yes, I'd be happy to learn more in a meeting",
+        "Tomorrow at 10 works for me",
     ]
     
     for i, user_input in enumerate(demo_turns, 1):

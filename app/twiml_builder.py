@@ -24,7 +24,7 @@ def _say_attrs() -> str:
     return attrs
 
 
-def sanitize_say_text(text: str, fallback: str = "שלום") -> str:
+def sanitize_say_text(text: str, fallback: str | None = None) -> str:
     """
     Sanitize text for Twilio <Say> tags.
     
@@ -42,7 +42,7 @@ def sanitize_say_text(text: str, fallback: str = "שלום") -> str:
         Sanitized and XML-escaped text
     """
     if not text:
-        text = fallback
+        text = fallback or get_caller_text("fallback_short")
     
     # Normalize Unicode (NFKC = compatibility decomposition + canonical composition)
     t = unicodedata.normalize("NFKC", text)
@@ -54,7 +54,7 @@ def sanitize_say_text(text: str, fallback: str = "שלום") -> str:
     t = re.sub(r"\s+", " ", t).strip()
     
     if not t:
-        t = fallback
+        t = fallback or get_caller_text("fallback_short")
     
     # Escape for XML
     return saxutils.escape(t)
@@ -72,26 +72,21 @@ def build_voice_twiml(greeting_hebrew: str, call_sid: str, lead_id: int) -> str:
     Returns:
         Complete TwiML XML string
     """
-    # Sanitize and escape Hebrew text for XML
+    # Default Hebrew input method: record (no beep), then transcribe.
     greeting_escaped = sanitize_say_text(greeting_hebrew)
-    listening_prompt = sanitize_say_text(get_caller_text("listening"))
-    no_response = sanitize_say_text(get_caller_text("no_response"))
-    
-    # Build action URL (will be escaped when inserted into XML)
-    action_url = f"{config.BASE_URL}/twilio/process-speech?call_sid={call_sid}&lead_id={lead_id}&turn=0"
+
+    action_url = f"{config.BASE_URL}/twilio/process-recording?call_sid={call_sid}&lead_id={lead_id}&turn=0"
     action_url_escaped = saxutils.escape(action_url)
 
     say_attrs = _say_attrs()
-    gather_lang = saxutils.escape((config.CALLER_LANGUAGE or "he-IL").strip())
-    
-    return f"""<?xml version="1.0" encoding="UTF-8"?>
+    max_len = int(getattr(config, "RECORD_MAX_LENGTH_SECONDS", 10) or 10)
+    if max_len <= 0:
+        max_len = 10
+
+    return f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <Response>
     <Say {say_attrs}>{greeting_escaped}</Say>
-    <Gather input="speech" language="{gather_lang}" speechTimeout="auto" timeout="10" bargeIn="false" action="{action_url_escaped}" method="POST">
-        <Say {say_attrs}>{listening_prompt}</Say>
-    </Gather>
-    <Say {say_attrs}>{no_response}</Say>
-    <Hangup/>
+        <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"2\" action=\"{action_url_escaped}\" method=\"POST\" />
 </Response>"""
 
 
@@ -137,9 +132,28 @@ def build_hangup_twiml(final_message_hebrew: str) -> str:
 </Response>"""
 
 
+def build_record_fallback_twiml(prompt_hebrew: str, call_sid: str, lead_id: int, turn: int) -> str:
+    """Ask caller to repeat and record audio."""
+    prompt_escaped = sanitize_say_text(prompt_hebrew)
+
+    action_url = f"{config.BASE_URL}/twilio/process-recording?call_sid={call_sid}&lead_id={lead_id}&turn={turn}"
+    action_url_escaped = saxutils.escape(action_url)
+
+    say_attrs = _say_attrs()
+    max_len = int(getattr(config, "RECORD_MAX_LENGTH_SECONDS", 10) or 10)
+    if max_len <= 0:
+        max_len = 10
+
+    return f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<Response>
+    <Say {say_attrs}>{prompt_escaped}</Say>
+        <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"2\" action=\"{action_url_escaped}\" method=\"POST\" />
+</Response>"""
+
+
 def build_continue_twiml(agent_reply_hebrew: str, call_sid: str, lead_id: int, turn: int) -> str:
     """
-    Build TwiML to continue conversation with speech gathering.
+    Build TwiML to continue conversation with recording.
     
     Args:
         agent_reply_hebrew: Hebrew agent response (already translated)
@@ -151,24 +165,19 @@ def build_continue_twiml(agent_reply_hebrew: str, call_sid: str, lead_id: int, t
         TwiML XML string
     """
     reply_escaped = sanitize_say_text(agent_reply_hebrew)
-    listening = sanitize_say_text(get_caller_text("listening"))
-    disconnected = sanitize_say_text(get_caller_text("disconnected"))
-    
-    # Build next action URL
-    next_url = f"{config.BASE_URL}/twilio/process-speech?call_sid={call_sid}&lead_id={lead_id}&turn={turn+1}"
+
+    next_url = f"{config.BASE_URL}/twilio/process-recording?call_sid={call_sid}&lead_id={lead_id}&turn={turn+1}"
     next_url_escaped = saxutils.escape(next_url)
 
     say_attrs = _say_attrs()
-    gather_lang = saxutils.escape((config.CALLER_LANGUAGE or "he-IL").strip())
-    
-    return f"""<?xml version="1.0" encoding="UTF-8"?>
+    max_len = int(getattr(config, "RECORD_MAX_LENGTH_SECONDS", 10) or 10)
+    if max_len <= 0:
+        max_len = 10
+
+    return f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <Response>
     <Say {say_attrs}>{reply_escaped}</Say>
-    <Gather input="speech" language="{gather_lang}" speechTimeout="auto" timeout="10" bargeIn="false" action="{next_url_escaped}" method="POST">
-        <Say {say_attrs}>{listening}</Say>
-    </Gather>
-    <Say {say_attrs}>{disconnected}</Say>
-    <Hangup/>
+        <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"2\" action=\"{next_url_escaped}\" method=\"POST\" />
 </Response>"""
 
 
@@ -187,22 +196,20 @@ def build_offer_slots_twiml(slots_message_hebrew: str, call_sid: str, lead_id: i
     """
     slots_escaped = sanitize_say_text(slots_message_hebrew)
     ask_time = sanitize_say_text(get_caller_text("ask_time"))
-    contact_email = sanitize_say_text(get_caller_text("contact_by_email"))
-    
-    next_url = f"{config.BASE_URL}/twilio/process-speech?call_sid={call_sid}&lead_id={lead_id}&turn={turn+1}"
+
+    next_url = f"{config.BASE_URL}/twilio/process-recording?call_sid={call_sid}&lead_id={lead_id}&turn={turn+1}"
     next_url_escaped = saxutils.escape(next_url)
 
     say_attrs = _say_attrs()
-    gather_lang = saxutils.escape((config.CALLER_LANGUAGE or "he-IL").strip())
-    
-    return f"""<?xml version="1.0" encoding="UTF-8"?>
+    max_len = int(getattr(config, "RECORD_MAX_LENGTH_SECONDS", 10) or 10)
+    if max_len <= 0:
+        max_len = 10
+
+    return f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <Response>
     <Say {say_attrs}>{slots_escaped}</Say>
-    <Gather input="speech" language="{gather_lang}" speechTimeout="auto" timeout="10" bargeIn="false" action="{next_url_escaped}" method="POST">
-        <Say {say_attrs}>{ask_time}</Say>
-    </Gather>
-    <Say {say_attrs}>{contact_email}</Say>
-    <Hangup/>
+    <Say {say_attrs}>{ask_time}</Say>
+        <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"2\" action=\"{next_url_escaped}\" method=\"POST\" />
 </Response>"""
 
 

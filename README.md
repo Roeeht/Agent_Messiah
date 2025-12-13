@@ -2,18 +2,19 @@
 
 **Production-Ready Hebrew AI Sales Agent**
 
-A production-grade, Hebrew-speaking AI sales agent system for outbound calling campaigns with OpenAI GPT-4o-mini integration, complete database persistence, and enterprise monitoring.
+A production-grade outbound calling system with a Hebrew caller experience, an English-only internal agent, and an HE↔EN translation pipeline.
 
-> 🚀 **Quick Start**: Docker: `docker-compose up -d` | See [PRODUCTION.md](PRODUCTION.md) for deployment  
-> 📞 **Voice Calling**: See [VOICE_CALLING_GUIDE.md](VOICE_CALLING_GUIDE.md) for Twilio setup  
-> 🤖 **LLM Integration**: See [LLM_INTEGRATION.md](LLM_INTEGRATION.md) for OpenAI configuration  
-> 🔄 **Migration**: Upgrading from MVP? See [MIGRATION.md](MIGRATION.md)
+> 🚀 **Quick Start**: Docker: `docker-compose up -d` | See [docs/PRODUCTION.md](docs/PRODUCTION.md) for deployment  
+> 📞 **Voice Calling**: See [docs/VOICE_CALLING_GUIDE.md](docs/VOICE_CALLING_GUIDE.md) for Twilio setup  
+> 🤖 **LLM Integration**: See [docs/LLM_INTEGRATION.md](docs/LLM_INTEGRATION.md) for OpenAI configuration  
+> 🔄 **Migration**: Upgrading from MVP? See [docs/MIGRATION.md](docs/MIGRATION.md)
 
 ## Overview
 
-Agent Messiah is a **production-ready** outbound calling solution that enables Alta to run Hebrew-speaking sales campaigns at scale with intelligent AI conversations. The system features:
+Agent Messiah is a **production-ready** outbound calling solution that enables Alta to run Hebrew-speaking sales campaigns at scale. The system features:
 
-- **🧠 OpenAI GPT-4o-mini integration** for natural, context-aware Hebrew conversations
+- **🧠 OpenAI GPT-4o-mini integration** for natural, context-aware agent conversations (English internally)
+- **🌍 HE↔EN translation pipeline** so callers always hear Hebrew while internal logic stays English-only
 - **📊 PostgreSQL database** for persistent lead and meeting storage
 - **⚡ Redis session management** for stateful voice conversations
 - **🔐 Enterprise security** with API authentication and webhook validation
@@ -24,18 +25,18 @@ Agent Messiah is a **production-ready** outbound calling solution that enables A
 
 ## Production Features
 
-| Feature                 | Status | Description                               |
-| ----------------------- | ------ | ----------------------------------------- |
-| 🗄️ Database Persistence | ✅     | PostgreSQL with SQLAlchemy ORM            |
-| 🎯 Redis Sessions       | ✅     | Conversation state management             |
-| 🧠 OpenAI Integration   | ✅     | GPT-4o-mini for intelligent conversations |
-| 📞 Twilio Voice         | ✅     | Hebrew voice calling with AWS Polly       |
-| 🔐 Security             | ✅     | API auth + webhook validation             |
-| 📊 Monitoring           | ✅     | Health checks + Prometheus metrics        |
-| 📝 Structured Logging   | ✅     | JSON logs with structlog                  |
-| ⚙️ Async Tasks          | ✅     | Celery workers for campaigns              |
-| 🐳 Docker               | ✅     | Full containerization with compose        |
-| ✅ Tests                | ✅     | 42 comprehensive tests                    |
+| Feature                 | Status | Description                                                       |
+| ----------------------- | ------ | ----------------------------------------------------------------- |
+| 🗄️ Database Persistence | ✅     | PostgreSQL with SQLAlchemy ORM                                    |
+| 🎯 Redis Sessions       | ✅     | Conversation state management                                     |
+| 🧠 OpenAI Integration   | ✅     | GPT-4o-mini for intelligent conversations                         |
+| 📞 Twilio Voice         | ✅     | Hebrew voice calling (Twilio `<Say>` with a Hebrew-capable voice) |
+| 🔐 Security             | ✅     | API auth + webhook validation                                     |
+| 📊 Monitoring           | ✅     | Health checks + Prometheus metrics                                |
+| 📝 Structured Logging   | ✅     | JSON logs with structlog                                          |
+| ⚙️ Async Tasks          | ✅     | Celery workers for campaigns                                      |
+| 🐳 Docker               | ✅     | Full containerization with compose                                |
+| ✅ Tests                | ✅     | Comprehensive test suite                                          |
 
 ## Quick Start
 
@@ -100,23 +101,15 @@ Agent_Messiah/
 │   ├── leads_store.py       # Lead management
 │   └── calendar_store.py    # Meeting scheduling
 ├── alembic/                 # Database migrations
-├── tests/                   # 42 comprehensive tests
+├── docs/                    # Documentation
+├── scripts/                 # Helper scripts
+├── tests/                   # Test suite
 ├── docker-compose.yml       # Multi-container setup
 ├── Dockerfile              # Production container
-├── PRODUCTION.md           # Production deployment guide
-├── MIGRATION.md            # Migration from MVP guide
-├── LLM_INTEGRATION.md      # OpenAI integration docs
 └── README.md               # This file
 ```
 
-├── .env.example
-├── .gitignore
-├── PLANNING.md
-├── QUICKSTART.md
-├── IMPLEMENTATION_SUMMARY.md
-└── README.md
-
-````
+Entry-point docs live in `docs/`.
 
 ## Getting Started
 
@@ -131,7 +124,7 @@ Agent_Messiah/
 
 ```bash
 cd Agent_Messiah
-````
+```
 
 2. **Create a virtual environment**
 
@@ -210,7 +203,7 @@ curl -X POST "http://localhost:8000/outbound/campaign"
 The agent will:
 
 1. Call the lead's phone number
-2. Speak the greeting in Hebrew (AWS Polly - Ayelet voice)
+2. Speak the greeting in Hebrew (via Twilio `<Say>` using a Hebrew-capable voice)
 3. Listen for responses using speech-to-text
 4. Continue the conversation based on responses
 5. Offer meeting slots if lead is interested
@@ -222,6 +215,8 @@ The agent will:
 
 **Endpoint**: `POST /agent/turn`
 
+Note: this endpoint is a direct agent turn (no Twilio). In `AGENT_MODE=llm` the agent responds in English (by design). For the Hebrew caller experience, use the Twilio flow.
+
 **Request**:
 
 ```bash
@@ -229,7 +224,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "שלום",
+      "user_utterance": "Hi",
     "history": []
   }'
 ```
@@ -238,7 +233,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
 
 ```json
 {
-  "agent_reply": "היי דוד! אני מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכני AI. איך אתם מטפלים היום בלידים נכנסים?",
+  "agent_reply": "Hi David! I'm the agent from Alta. We help companies increase sales with AI agents. How do you handle inbound leads today?",
   "action": null,
   "action_payload": null
 }
@@ -378,7 +373,7 @@ The agent follows this conversation pattern:
 4. **Slot Selection**: Books meeting and confirms
 5. **Not Interested**: Politely ends conversation
 
-All responses are in natural Israeli Hebrew with short, conversational sentences.
+Caller-facing responses are in natural Israeli Hebrew with short, conversational sentences.
 
 ## Next Steps for Production
 
@@ -401,7 +396,7 @@ If this were a real production system, the next steps would be:
 3. **Twilio Voice Implementation**
 
    - Complete speech-to-text integration (Twilio/Deepgram)
-   - Implement text-to-speech with Hebrew voice (Polly.Ayelet)
+   - Keep Hebrew TTS voice configuration stable (e.g., `TWILIO_TTS_VOICE=Google.he-IL-Standard-A`)
    - Add WebSocket support for real-time audio streaming
    - Handle interruptions and natural conversation flow
 

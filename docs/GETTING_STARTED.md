@@ -9,7 +9,7 @@ You have **two options** - Simple (local) or Full (Docker with all features):
 #### Option A: Simple Local Start (Recommended for Testing)
 
 ```bash
-cd /Users/roeehabari-tamir/Documents/repos/Agent_Messiah
+cd Agent_Messiah
 
 # Activate virtual environment
 source venv/bin/activate
@@ -99,7 +99,8 @@ curl -X POST http://localhost:8000/agent/turn \
     "history": []
   }'
 
-# The agent will respond in Hebrew!
+# In AGENT_MODE=rule the agent responds in Hebrew.
+# In AGENT_MODE=llm the agent responds in English (caller Hebrew is via translation in the Twilio flow).
 # Response:
 # {
 #   "agent_reply": "שלום דוד! אני הסוכן מAlta...",
@@ -112,7 +113,7 @@ curl -X POST http://localhost:8000/agent/turn \
 
 ```bash
 # Run the interactive demo
-python demo_llm.py --interactive
+python scripts/demo_llm.py --interactive
 
 # This starts a chat where you can type Hebrew messages
 # Type messages in Hebrew and press Enter
@@ -274,7 +275,7 @@ ngrok http 8000
 
 1. **Test the API**: Use the curl commands above
 2. **Try a phone call**: Make sure ngrok is running, then call a lead
-3. **Interactive demo**: Run `python demo_llm.py --interactive`
+3. **Interactive demo**: Run `python scripts/demo_llm.py --interactive`
 4. **View logs**: Check the console for structured logs
 5. **Monitor health**: Visit http://localhost:8000/health/info
 

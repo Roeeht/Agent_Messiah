@@ -1,5 +1,7 @@
 # Project goal
 
+Note: This is the original planning doc for the assignment. The current implementation includes an English-only internal agent with an HE↔EN translation pipeline for the Hebrew caller experience.
+
 Build a small demo of a **Hebrew speaking AI outbound calling agent** for Alta's "AI Solution Engineer" home assignment.
 
 The agent's purpose:

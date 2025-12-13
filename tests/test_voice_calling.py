@@ -167,7 +167,7 @@ def test_twilio_process_speech_offers_slots():
         name="דוד כהן",
         phone="+972501234567",
         company="TechCorp",
-        role="מנכ\"ל"
+        role="מנכ״ל"
     )
     
     # Simulate conversation history leading to slot offering
