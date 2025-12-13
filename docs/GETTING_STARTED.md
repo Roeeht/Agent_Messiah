@@ -4,9 +4,9 @@
 
 ### Step 1: Start the Application
 
-You have **two options** - Simple (local) or Full (Docker with all features):
+This project is designed to run locally with a simple FastAPI + in-memory setup (no database).
 
-#### Option A: Simple Local Start (Recommended for Testing)
+#### Local Start (Recommended)
 
 ```bash
 cd Agent_Messiah
@@ -14,26 +14,11 @@ cd Agent_Messiah
 # Activate virtual environment
 source venv/bin/activate
 
-# Run database migrations (first time only)
-alembic upgrade head
-
 # Start the server
 uvicorn app.main:app --reload
 ```
 
 The server will start on **http://localhost:8000**
-
-**Note**: This uses SQLite (no PostgreSQL needed) and works without Redis. Perfect for testing!
-
-#### Option B: Full Production Start (with all features)
-
-```bash
-# Start all services (PostgreSQL, Redis, App, Celery)
-docker-compose up -d
-
-# Check status
-docker-compose logs -f app
-```
 
 ### Step 2: Verify It's Running
 
@@ -50,44 +35,37 @@ curl http://localhost:8000/health
 curl http://localhost:8000/health/info
 ```
 
-### Step 3: Test with a New Lead
+### Step 3: Use Built-in Test Leads
 
-#### Method 1: Add Lead via API
-
-```bash
-# Add a new lead
-curl -X POST http://localhost:8000/leads \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "יוסי כהן",
-    "phone": "+972501234567",
-    "company": "Tech Corp",
-    "role": "CTO",
-    "notes": "Met at conference"
-  }'
-
-# Response will include the lead_id
-```
-
-#### Method 2: Use Built-in Test Leads
-
-The system comes with 3 pre-loaded test leads:
+The system comes with 2 pre-loaded test leads:
 
 ```bash
 # List all leads
 curl http://localhost:8000/leads
 
-# Returns:
-# [
-#   {"id": 1, "name": "דוד כהן", "phone": "+972501234567", ...},
-#   {"id": 2, "name": "שרה לוי", "phone": "+972509876543", ...},
-#   {"id": 3, "name": "מיכאל אברהם", "phone": "+972502223333", ...}
-# ]
+# Returns a JSON list of leads.
+# (See `app/leads_store.py` for the seeded sample data.)
 ```
 
 ### Step 4: Test the Agent (3 Ways)
 
 #### Way 1: Text Conversation (API Test)
+
+If you want an interactive text chat (no manual history copying), use:
+
+```bash
+venv/bin/python scripts/text_chat.py --lead-id 1
+```
+
+Or, if your server is not on localhost:
+
+```bash
+venv/bin/python scripts/text_chat.py --base-url http://localhost:8000 --lead-id 1
+```
+
+Type `/exit` to quit.
+
+If you see an immediate exit with no prompt, double-check you ran the exact command above (sometimes terminals accidentally paste a markdown link like `[...] (http://...)` which will fail).
 
 ```bash
 # Have a conversation with the agent
@@ -95,32 +73,15 @@ curl -X POST http://localhost:8000/agent/turn \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "שלום",
+    "user_utterance": "Hello",
     "history": []
   }'
 
-# In AGENT_MODE=rule the agent responds in Hebrew.
-# In AGENT_MODE=llm the agent responds in English (caller Hebrew is via translation in the Twilio flow).
-# Response:
-# {
-#   "agent_reply": "שלום דוד! אני הסוכן מAlta...",
-#   "action": null,
-#   "action_payload": null
-# }
+# The agent runs in LLM-only mode and responds in English.
+# In the Twilio voice flow, caller Hebrew is handled via HE↔EN translation around the LLM.
 ```
 
-#### Way 2: Interactive Demo Script
-
-```bash
-# Run the interactive demo
-python scripts/demo_llm.py --interactive
-
-# This starts a chat where you can type Hebrew messages
-# Type messages in Hebrew and press Enter
-# Type 'quit' to exit
-```
-
-#### Way 3: Actual Phone Call (Real Test!)
+#### Way 2: Actual Phone Call (Real Test!)
 
 **Important**: Make sure ngrok is running first:
 
@@ -135,7 +96,7 @@ ngrok http 8000
 Then initiate a call:
 
 ```bash
-# Call lead #1 (דוד כהן)
+# Call lead #1
 curl -X POST "http://localhost:8000/outbound/initiate-call?lead_id=1"
 
 # Response:
@@ -157,7 +118,7 @@ Your `.env` file now has all required keys:
 ```bash
 OPENAI_API_KEY=sk-proj-...      # Your OpenAI key ✓
 OPENAI_MODEL=gpt-4o-mini        # Model to use ✓
-AGENT_MODE=llm                  # Use LLM conversations ✓
+# LLM-only mode (no AGENT_MODE setting)
 
 TWILIO_ACCOUNT_SID=AC...        # Your Twilio SID ✓
 TWILIO_AUTH_TOKEN=e696...       # Your Twilio token ✓
@@ -169,11 +130,8 @@ BASE_URL=https://...ngrok...    # Your ngrok URL ✓
 ### ✅ Optional Keys (Added - Can Stay Empty)
 
 ```bash
-DATABASE_URL=sqlite:///./agent_messiah.db  # Uses SQLite by default
-REDIS_URL=redis://localhost:6379/0         # Only needed if Redis installed
 LOG_LEVEL=INFO                              # Logging verbosity
 API_KEY=                                    # Leave empty (optional security)
-WEBHOOK_SECRET=                             # Leave empty (optional security)
 ```
 
 ## Testing a Complete Flow
@@ -189,22 +147,17 @@ curl -X POST http://localhost:8000/agent/turn \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "שלום",
+    "user_utterance": "Hello",
     "history": []
   }'
-
-# Agent: "שלום דוד! אני הסוכן מAlta..."
 
 # 3. Show interest
 curl -X POST http://localhost:8000/agent/turn \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "כן, נשמע מעניין",
-    "history": [
-      {"role": "user", "content": "שלום"},
-      {"role": "assistant", "content": "שלום דוד! אני הסוכן מAlta..."}
-    ]
+    "user_utterance": "Yes, sounds interesting",
+    "history": []
   }'
 
 # Agent will offer meeting slots!
@@ -222,25 +175,6 @@ curl -X POST http://localhost:8000/agent/turn \
 ```
 
 ## Common Issues & Solutions
-
-### Issue: "Connection refused" or "Redis not available"
-
-**Solution**: Redis is optional! The system works without it.
-
-If you want Redis features:
-
-```bash
-brew install redis
-brew services start redis
-```
-
-### Issue: "Database error"
-
-**Solution**: Run migrations:
-
-```bash
-alembic upgrade head
-```
 
 ### Issue: "ngrok command not found"
 
@@ -263,21 +197,18 @@ ngrok http 8000
 ## What Happens When You Start?
 
 ```
-1. ✓ Database initialized (SQLite: agent_messiah.db)
-2. ✓ Redis checked (optional - skips if not available)
-3. ✓ OpenAI client configured
-4. ✓ Twilio client ready
-5. ✓ Server listening on http://localhost:8000
-6. ✓ Health checks available at /health
+1. ✓ OpenAI client configured (if OPENAI_API_KEY is set)
+2. ✓ Twilio client ready (if Twilio env vars are set)
+3. ✓ Server listening on http://localhost:8000
+4. ✓ Health checks available at /health
 ```
 
 ## Next Steps
 
 1. **Test the API**: Use the curl commands above
 2. **Try a phone call**: Make sure ngrok is running, then call a lead
-3. **Interactive demo**: Run `python scripts/demo_llm.py --interactive`
-4. **View logs**: Check the console for structured logs
-5. **Monitor health**: Visit http://localhost:8000/health/info
+3. **View logs**: Check the console for structured logs
+4. **Monitor health**: Visit http://localhost:8000/health/info
 
 ## Need Help?
 
@@ -293,9 +224,7 @@ ngrok http 8000
 - [ ] Can create a new lead
 - [ ] Can list all leads
 - [ ] Agent responds to text messages
-- [ ] Interactive demo works
 - [ ] Phone call initiates (with ngrok)
 - [ ] Meetings can be booked
-- [ ] Metrics endpoint works (`/metrics`)
 
-You're all set! 🚀
+You're all set!

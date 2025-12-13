@@ -149,47 +149,64 @@ def test_call_status_webhook():
 
 
 def test_twilio_process_speech_offers_slots():
-    """Test that positive response leads to slot offering.
-    
-    Note: Since we don't have session storage in tests, this test validates
-    that the agent logic can produce slot offerings when given proper history.
-    In production, conversation history would be stored in Redis/DB.
+    """Test that a positive response leads to slot offering.
+
+    In LLM-only mode, we validate this through /agent/turn (LLM is mocked in conftest).
     """
-    # Test that the agent logic itself can offer slots
-    from app import agent_logic
-    from app.models import Lead
-    
-    lead = Lead(
-        id=1,
-        name="דוד כהן",
-        phone="+972501234567",
-        company="TechCorp",
-        role="מנכ״ל"
+
+    resp = client.post(
+        "/agent/turn",
+        json={
+            "lead_id": 1,
+            "user_utterance": "Yes, sounds interesting",
+            "history": [{"user": "Hello", "agent": "Hi!"}],
+        },
     )
-    
-    # Simulate conversation history leading to slot offering
-    # Need to go through proper qualifying flow
-    history = [
-        {"role": "agent", "content": "היי דוד! אני מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכני AI. איך אתם מטפלים היום בלידים נכנסים?"},
-        {"role": "user", "content": "יש לנו צוות מכירות"},
-        {"role": "agent", "content": "מעניין. יש לכם צוות SDR שמטפל בשיחות?"},
-        {"role": "user", "content": "כן, נשמע מעניין"},
-    ]
-    
-    agent_reply, action, action_payload = agent_logic.decide_next_turn(
-        lead=lead,
-        history=history,
-        last_user_utterance="כן, אשמח לשמוע יותר"
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["action"] == "offer_slots"
+    assert data["action_payload"] is not None
+    assert "slots" in data["action_payload"]
+
+
+def test_twilio_does_not_offer_slots_twice_when_pending_slots_exist():
+    """If slots were already offered, a follow-up ambiguous "yes" shouldn't re-offer them."""
+
+    call_sid = "CA9999999999"
+    client.post(
+        "/twilio/voice",
+        data={
+            "CallSid": call_sid,
+            "From": "+972501234567",
+            "To": "+972501111111",
+        },
     )
-    
-    # After qualifying questions with positive signals, should offer slots
-    assert action in ["offer_slots", None]  # None means continuing conversation
-    assert len(agent_reply) > 0
-    
-    # If offering slots, should have slot data
-    if action == "offer_slots":
-        assert action_payload is not None
-        assert "slots" in action_payload
+
+    # Turn 0: permission yes -> mocked LLM offers slots.
+    r1 = client.post(
+        "/twilio/process-speech",
+        data={
+            "CallSid": call_sid,
+            "SpeechResult": "כן",
+            "Confidence": "0.95",
+        },
+        params={"call_sid": call_sid, "lead_id": 1, "turn": 0},
+    )
+    assert r1.status_code == 200
+    assert "איזה זמן מתאים לך?" in r1.text  # offer_slots TwiML includes ask_time prompt
+
+    # Turn 1: ambiguous yes again. Without a guard, the mocked LLM would offer slots again.
+    r2 = client.post(
+        "/twilio/process-speech",
+        data={
+            "CallSid": call_sid,
+            "SpeechResult": "כן",
+            "Confidence": "0.95",
+        },
+        params={"call_sid": call_sid, "lead_id": 1, "turn": 1},
+    )
+    assert r2.status_code == 200
+    assert "איזה זמן מתאים לך?" not in r2.text  # continue TwiML should not repeat the slot-offer prompt
 
 
 def test_root_endpoint_includes_outbound():

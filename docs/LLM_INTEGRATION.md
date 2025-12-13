@@ -1,6 +1,6 @@
 # LLM Integration Guide
 
-Agent Messiah now supports **intelligent, natural conversations** using OpenAI's GPT models!
+Agent Messiah runs in **LLM-only mode** using OpenAI's GPT models.
 
 ## What's New
 
@@ -33,7 +33,6 @@ Add your OpenAI configuration:
 # OpenAI API configuration
 OPENAI_API_KEY=sk-proj-your-actual-key-here
 OPENAI_MODEL=gpt-4o-mini  # Recommended for cost efficiency
-AGENT_MODE=llm  # Use "llm" for OpenAI, "rule" for rule-based
 ```
 
 ### 3. Test the Agent
@@ -98,14 +97,18 @@ The agent maintains context by:
 
 ## Example Conversations
 
-Note: In `AGENT_MODE=llm`, the LLM outputs English-only. In the Twilio voice flow, user speech is translated HE→EN before the LLM, and replies are translated EN→HE for the caller.
+Note: The LLM outputs English-only. In the Twilio voice flow, user speech is translated HE→EN before the LLM, and replies are translated EN→HE for the caller.
 
 ### Conversation 1: Successful Booking
 
 ```bash
 # Turn 1
 User: "Hello"
-Agent: "Hi! I'm the agent from Alta. We help companies increase sales with AI agents. How do you handle inbound leads today?"
+Agent: "Hi! I'm the agent from Alta. We help companies increase sales with AI agents. Is this a good time to talk? Please answer yes or no."
+
+# Turn 2
+User: "Yes"
+Agent: "Great. How do you handle inbound leads today?"
 
 # Turn 2
 User: "We have an SDR team but they're overloaded"
@@ -155,35 +158,16 @@ The agent will:
 
 1. Call the lead
 2. Generate the greeting in English, translate it to Hebrew, and speak it via Twilio `<Say>`
-3. Listen to responses using speech-to-text
+3. Record each response (`<Record>`) and transcribe it with OpenAI
 4. Use GPT to understand and respond naturally
 5. Continue until meeting is booked or call ends
 
-## Switching Between LLM and Rule-Based
+## LLM-Only Mode
 
-You can switch modes anytime:
+The project no longer supports switching between LLM and rule-based modes.
 
-```env
-# Use LLM (natural conversations)
-AGENT_MODE=llm
-
-# Use rule-based (deterministic, no API costs)
-AGENT_MODE=rule
-```
-
-**When to use LLM mode:**
-
-- Production calling campaigns
-- Need natural conversation handling
-- Want to handle unexpected responses
-- Budget allows (~$0.002 per conversation)
-
-**When to use rule-based mode:**
-
-- Development/testing without API costs
-- Deterministic behavior required
-- Offline/air-gapped environments
-- Very high volume (>10K calls/day) where cost matters
+- If you need offline/deterministic behavior (for CI/tests), mock `app.llm_agent.decide_next_turn_llm` and translation helpers.
+- For production, configure `OPENAI_API_KEY`.
 
 ## Cost Estimation
 
@@ -219,11 +203,10 @@ All conversations are logged automatically. Check the server logs to see:
 - Verify you have credits in your OpenAI account
 - Check internet connection
 
-**"Agent not using LLM"**
+**"OpenAI not configured"**
 
-- Confirm `AGENT_MODE=llm` in .env
 - Verify `OPENAI_API_KEY` is set
-- Restart the server after changing .env
+- Restart the server after changing `.env`
 
 **"Conversations not coherent"**
 
@@ -238,7 +221,7 @@ All conversations are logged automatically. Check the server logs to see:
 Edit `app/llm_agent.py` to customize the agent's behavior:
 
 ```python
-SYSTEM_PROMPT = """אתה סוכן מכירות AI בשם "הסוכן" שעובד עבור חברת Alta.
+SYSTEM_PROMPT = """You are an AI sales agent working for Alta.
 
 [Your custom instructions here]
 """

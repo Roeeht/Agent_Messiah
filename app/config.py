@@ -12,18 +12,9 @@ class Config:
     
     # OpenAI Configuration
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # Default to gpt-4o-mini for cost efficiency
-    AGENT_MODE: str = os.getenv("AGENT_MODE", "llm")  # "llm" for OpenAI-based or "rule" for rule-based
-    
-    # Database Configuration
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "sqlite:///./agent_messiah.db"  # Default to SQLite for development
-    )
-    
-    # Redis Configuration
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    REDIS_SESSION_TTL: int = int(os.getenv("REDIS_SESSION_TTL", "1800"))  # 30 minutes
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  
+    # Agent Messiah runs in LLM-only mode.
+    # If OpenAI is not configured, LLM-dependent endpoints will return an error.
     
     # Twilio Configuration
     TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
@@ -36,8 +27,12 @@ class Config:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
     # Optional: log caller/agent transcript to console.
-    # Keep disabled by default (may include sensitive content).
-    LOG_CALL_TRANSCRIPT: bool = os.getenv("LOG_CALL_TRANSCRIPT", "False").lower() == "true"
+    # Defaults to enabled in development (DEBUG=True) and disabled in production.
+    # May include sensitive content.
+    LOG_CALL_TRANSCRIPT: bool = os.getenv(
+        "LOG_CALL_TRANSCRIPT",
+        "True" if DEBUG else "False",
+    ).lower() == "true"
     LOG_CALL_TRANSCRIPT_MAX_CHARS: int = int(os.getenv("LOG_CALL_TRANSCRIPT_MAX_CHARS", "500"))
 
     # Voice Debugging (development / controlled environments only)
@@ -60,7 +55,6 @@ class Config:
     
     # Language Configuration
     CALLER_LANGUAGE: str = os.getenv("CALLER_LANGUAGE", "he-IL")  # Language spoken to caller
-    INTERNAL_LANGUAGE: str = os.getenv("INTERNAL_LANGUAGE", "en")  # Language for logs/state/LLM
     ENABLE_TRANSLATION: bool = os.getenv("ENABLE_TRANSLATION", "True").lower() == "true"  # Use OpenAI for translation
 
     # Twilio TTS voice (important for Hebrew):
@@ -72,14 +66,6 @@ class Config:
     
     # Security
     API_KEY: str = os.getenv("API_KEY", "")  # For API authentication
-    WEBHOOK_SECRET: str = os.getenv("WEBHOOK_SECRET", "")  # For webhook validation
-    
-    @classmethod
-    def validate(cls) -> bool:
-        """Validate that required configuration is present."""
-        # For basic functionality, we don't require all keys
-        # OPENAI and Twilio are optional for initial testing
-        return True
     
     @classmethod
     def has_openai_key(cls) -> bool:

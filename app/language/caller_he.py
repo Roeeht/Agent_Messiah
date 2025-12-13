@@ -14,7 +14,11 @@ CALLER_MESSAGES: Dict[str, str] = {
     # Greetings
     "greeting_default": "שלום! אני הסוכן משיח מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכנים חכמים."
 ,
-    "greeting_with_name": "שלום {name}! אני משיח הסוכן מAlta. איך אתה?",
+    "greeting_with_name": "שלום {name}! אני משיח הסוכן מAlta. איך אתה? ",
+
+    # Permission gate (first question)
+    "permission_ask": "שלום! אני הסוכן משיח מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכנים חכמים. האם זה זמן טוב לדבר? בבקשה ענה רק כן או לא.",
+    "permission_clarify": "רק כדי לוודא, האם זה זמן טוב לדבר? בבקשה ענה כן או לא.",
 
     # Generic short fallback
     "fallback_short": "שלום",
@@ -34,6 +38,7 @@ CALLER_MESSAGES: Dict[str, str] = {
     
     # Closings
     "goodbye": "תודה ושיהיה יום נהדר!",
+    "not_interested_goodbye": "אין בעיה. אם תשנה את דעתך, אתה מוזמן להתקשר אלינו. להתראות!",
     "meeting_confirmed": "תקבל אישור במייל עם פרטי הפגישה. מחכה לשיחה!",
     "contact_by_email": "נהיה בקשר במייל. תודה!",
     "disconnected": "נראה שהקו התנתק. נהיה בקשר. תודה!",
@@ -52,6 +57,43 @@ def get_not_interested_phrases() -> list[str]:
         "תוריד",
         "תסיר",
         "אל תתקשר",
+    ]
+
+
+def get_permission_yes_phrases() -> list[str]:
+    """Hebrew phrases that indicate consent to continue the call (yes).
+
+    Kept here so Hebrew text stays in approved files.
+    """
+    return [
+        "כן",
+        "בטח",
+        "כן בטח",
+        "כן אפשר",
+        "כן, אפשר",
+        "אפשר",
+        "בסדר",
+        "אוקיי",
+        "אוקי",
+    ]
+
+
+def get_permission_no_phrases() -> list[str]:
+    """Hebrew phrases that indicate the lead is not available / not interested right now (no).
+
+    Kept here so Hebrew text stays in approved files.
+    """
+    return [
+        "לא",
+        "לא תודה",
+        "לא, תודה",
+        "לא עכשיו",
+        "לא מתאים",
+        "לא זמן טוב",
+        "לא בזמן",
+        "עזוב",
+        "עזבי",
+        *get_not_interested_phrases(),
     ]
 
 

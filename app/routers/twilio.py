@@ -5,7 +5,7 @@ import hashlib
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 
-from app import leads_store, llm_agent
+from app import calendar_store, leads_store, llm_agent
 from app.config import config
 from app.logging_config import logger
 from app.redis_client import SessionManager, REDIS_AVAILABLE
@@ -267,6 +267,7 @@ async def _process_hebrew_turn(
     allow_record_fallback: bool,
 ) -> Response:
     import re
+    from datetime import datetime
 
     from app.language.translator import translate_he_to_en, translate_en_to_he
     from app.language.caller_he import (
@@ -324,6 +325,82 @@ async def _process_hebrew_turn(
         if goodbye_he and goodbye_he in (reply_he or ""):
             return True
         return is_goodbye_message(reply_he)
+
+    def _parse_iso_datetime(value: str | None) -> datetime | None:
+        if not value:
+            return None
+        s = value.strip()
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        try:
+            return datetime.fromisoformat(s)
+        except Exception:
+            return None
+
+    def _infer_selected_slot_index(*, speech_he: str, text_en: str, slots: list[dict]) -> int | None:
+        """Best-effort mapping of user's response to one of the offered slots.
+
+        Returns 0/1 for a confident match, otherwise None.
+        """
+        if not slots:
+            return None
+
+        # Collect slot hours from the offered slots.
+        slot_hours: list[int | None] = []
+        for slot in slots:
+            if not isinstance(slot, dict):
+                slot_hours.append(None)
+                continue
+            dt = _parse_iso_datetime(slot.get("start"))
+            if dt is not None:
+                slot_hours.append(dt.hour)
+                continue
+            display = (slot.get("display_text") or "")
+            m = re.search(r"\b(\d{1,2}):(\d{2})\b", display)
+            slot_hours.append(int(m.group(1)) if m else None)
+
+        en = (text_en or "").strip().lower()
+        he = (speech_he or "").strip().lower()
+        combined = f"{en} {he}".strip()
+
+        # Ordinal / option selection.
+        if re.search(r"\b(1st|first)\b", en):
+            return 0
+        if re.search(r"\b(2nd|second)\b", en):
+            return 1
+
+        target_hour: int | None = None
+
+        # Explicit hour selection (English).
+        if re.search(r"\b10(:00)?\b", en) or re.search(r"\bten\b", en):
+            target_hour = 10
+        elif re.search(r"\b14(:00)?\b", en):
+            target_hour = 14
+        elif re.search(r"\b2(:00)?\b", en) and ("pm" in en or "afternoon" in en):
+            target_hour = 14
+
+        # Explicit hour selection via numeric tokens in the raw transcript.
+        if target_hour is None:
+            if re.search(r"\b10(:00)?\b", he):
+                target_hour = 10
+            elif re.search(r"\b14(:00)?\b", he):
+                target_hour = 14
+
+        # Morning/afternoon cues if we have identifiable hours.
+        if target_hour is None and any(h is not None for h in slot_hours):
+            known_hours = [h for h in slot_hours if h is not None]
+            if "morning" in combined:
+                target_hour = min(known_hours)
+            elif "afternoon" in combined:
+                target_hour = max(known_hours)
+
+        if target_hour is None:
+            return None
+
+        for idx, hour in enumerate(slot_hours):
+            if hour == target_hour:
+                return idx
+        return None
 
     speech_norm = (speech_he or "").strip()
     speech_sig = hashlib.sha256(speech_norm.encode("utf-8")).hexdigest() if speech_norm else ""
@@ -384,10 +461,10 @@ async def _process_hebrew_turn(
     # Gate the conversation: first answer must be yes/no to permission question.
     stage = session.get("call_stage") if isinstance(session, dict) else None
     if stage == "permission":
-        _log_transcript_turn(role="user", he=speech_he, en=None)
         yes_phrases = get_permission_yes_phrases()
         no_phrases = get_permission_no_phrases()
         if any(p in speech_norm for p in no_phrases):
+            _log_transcript_turn(role="user", he=speech_he, en=None)
             goodbye = get_caller_text("not_interested_goodbye")
             _log_transcript_turn(role="assistant", he=goodbye, en=None)
             twiml = build_hangup_twiml(goodbye)
@@ -400,6 +477,7 @@ async def _process_hebrew_turn(
         if any(p in speech_norm for p in yes_phrases):
             SessionManager.update_session(call_sid, {"call_stage": "conversation"})
         else:
+            _log_transcript_turn(role="user", he=speech_he, en=None)
             prompt = get_caller_text("permission_clarify")
             _log_transcript_turn(role="assistant", he=prompt, en=None)
             twiml = build_continue_twiml(prompt, call_sid, effective_lead_id, turn)
@@ -456,17 +534,107 @@ async def _process_hebrew_turn(
 
     SessionManager.add_conversation_turn(call_sid, role="user", message=english_user_input)
 
-    english_reply, action, action_payload = llm_agent.decide_next_turn_llm(
-        lead=lead,
-        history=history,
-        last_user_utterance=english_user_input,
-    )
+    english_reply: str
+    action: str | None
+    action_payload: dict | None
+    decision_source = "llm"
+
+    pending_slots = session.get("pending_slots") if isinstance(session, dict) else None
+    has_pending_slots = isinstance(pending_slots, list) and bool(pending_slots)
+    if isinstance(pending_slots, list) and pending_slots and lead is not None:
+        inferred_index = _infer_selected_slot_index(
+            speech_he=speech_he,
+            text_en=english_user_input,
+            slots=pending_slots,
+        )
+        if inferred_index is not None and 0 <= inferred_index < len(pending_slots):
+            selected = pending_slots[inferred_index] if isinstance(pending_slots[inferred_index], dict) else {}
+            selected_start = _parse_iso_datetime(selected.get("start"))
+            selected_duration = int(selected.get("duration_minutes", 30) or 30)
+            selected_display = (selected.get("display_text") or "").strip() or "the selected time"
+
+            if selected_start is not None:
+                meeting = calendar_store.book_meeting(
+                    lead_id=lead.id,
+                    start=selected_start,
+                    duration_minutes=selected_duration,
+                )
+                english_reply = (
+                    f"Excellent! I've scheduled a meeting for you on {selected_display}. "
+                    "I'll send you a calendar invitation. Looking forward to the call!"
+                )
+                action = "book_meeting"
+                action_payload = {
+                    "meeting_id": meeting.id,
+                    "start": meeting.start.isoformat(),
+                    "calendar_link": meeting.calendar_link,
+                    "slot_index": inferred_index,
+                }
+                decision_source = "deterministic_slot_match"
+                # Clear pending slots to avoid reusing them.
+                SessionManager.update_session(call_sid, {"pending_slots": None})
+            else:
+                inferred_index = None
+
+    if decision_source == "llm":
+        english_reply, action, action_payload = llm_agent.decide_next_turn_llm(
+            lead=lead,
+            history=history,
+            last_user_utterance=english_user_input,
+        )
+
+    # Guard against duplicate slot offers.
+    # If we already offered slots earlier in the call (pending_slots is set) and the
+    # model tries to offer again, keep the conversation moving by asking the lead to
+    # choose between the existing options.
+    if action == "offer_slots" and has_pending_slots:
+        opt_text: list[str] = []
+        for idx, slot in enumerate(pending_slots[:2]):
+            if not isinstance(slot, dict):
+                continue
+            display = (slot.get("display_text") or "").strip()
+            if display:
+                opt_text.append(f"Option {idx + 1}: {display}")
+
+        if len(opt_text) >= 2:
+            options = f"{opt_text[0]} or {opt_text[1]}"
+        elif len(opt_text) == 1:
+            options = opt_text[0]
+        else:
+            options = "the times I just mentioned"
+
+        english_reply = (
+            f"Just to confirm, which time works for you: {options}? "
+            "You can say 'first' or 'second'. If neither works, tell me what day/time you prefer."
+        )
+        action = None
+        action_payload = None
+        decision_source = "guard_repeat_offer_slots"
 
     SessionManager.append_debug_event(
         call_sid,
         "agent_decision",
-        {"turn": turn, "action": action, "action_payload": action_payload, "reply_en": english_reply},
+        {"turn": turn, "action": action, "action_payload": action_payload, "reply_en": english_reply, "source": decision_source},
     )
+
+    # Persist last action/payload so we can deterministically handle slot selection next turn.
+    if action == "offer_slots" and isinstance(action_payload, dict) and isinstance(action_payload.get("slots"), list):
+        SessionManager.update_session(
+            call_sid,
+            {
+                "last_action": action,
+                "last_action_payload": action_payload,
+                "pending_slots": action_payload.get("slots"),
+            },
+        )
+    else:
+        SessionManager.update_session(
+            call_sid,
+            {
+                "last_action": action,
+                "last_action_payload": action_payload,
+            },
+        )
 
     SessionManager.add_conversation_turn(call_sid, role="assistant", message=english_reply)
 

@@ -38,7 +38,7 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "שלום",
+    "user_utterance": "Hello",
     "history": []
   }'
 ```
@@ -47,13 +47,13 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
 
 ```json
 {
-  "agent_reply": "היי דוד! אני מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכני AI. איך אתם מטפלים היום בלידים נכנסים?",
+  "agent_reply": "Hi Roy! I'm the agent from Alta. We help companies increase sales with AI agents. Is this a good time to talk? Please answer ONLY yes or no.",
   "action": null,
   "action_payload": null
 }
 ```
 
-Note: In `AGENT_MODE=llm`, the agent reply is English-only by design. For the Hebrew caller experience, use the Twilio voice flow (the server translates HE↔EN around the LLM).
+Note: `/agent/turn` is English-only by design. For the Hebrew caller experience, use the Twilio voice flow (the server translates HE↔EN around the LLM).
 
 ### Example 2: "Who are you?"
 
@@ -61,7 +61,7 @@ Note: In `AGENT_MODE=llm`, the agent reply is English-only by design. For the He
 curl -X POST "http://127.0.0.1:8000/agent/turn" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_utterance": "מי אתה?",
+    "user_utterance": "Who are you?",
     "history": []
   }'
 ```
@@ -72,7 +72,7 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
 curl -X POST "http://127.0.0.1:8000/agent/turn" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_utterance": "לא מעוניין",
+    "user_utterance": "Not interested",
     "history": []
   }'
 ```
@@ -86,9 +86,9 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "כן, נשמע מעניין",
+    "user_utterance": "Yes, sounds interesting",
     "history": [
-      {"user": "שלום", "agent": "היי דוד!..."}
+      {"user": "Hello", "agent": "Hi Roy!..."}
     ]
   }'
 ```
@@ -101,8 +101,8 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
   "action_payload": {
     "slots": [
       {
-        "start": "2025-12-12T10:00:00",
-        "display_text": "מחר בשעה 10:00 (12/12)",
+        "start": "2030-01-01T10:00:00",
+        "display_text": "... (caller-facing display text)",
         "duration_minutes": 30
       },
       ...
@@ -111,6 +111,8 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
 }
 ```
 
+Note: slot `display_text` is caller-facing and may be Hebrew.
+
 ### Example 5: Book a Meeting
 
 ```bash
@@ -118,10 +120,10 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "מחר בשעה 10 מתאים",
+    "user_utterance": "Tomorrow at 10 works",
     "history": [
-      {"user": "שלום", "agent": "היי!"},
-      {"user": "כן נשמע מעניין", "agent": "נשמח לקבוע פגישה..."}
+      {"user": "Hello", "agent": "Hi!"},
+      {"user": "Yes, sounds interesting", "agent": "Great. ..."}
     ]
   }'
 ```
@@ -148,13 +150,7 @@ curl http://127.0.0.1:8000/meetings
 curl -X POST http://127.0.0.1:8000/twilio/voice
 ```
 
-## Manual Testing Script
-
-For interactive testing (requires server to be running):
-
-```bash
-python scripts/manual_test_api.py
-```
+Note: this curl test hits your local server directly. For a real phone call via Twilio, your server must be reachable from the public internet (use ngrok and set `BASE_URL`). See `docs/VOICE_CALLING_GUIDE.md`.
 
 ## Using the Interactive API Docs
 
@@ -179,7 +175,9 @@ TWILIO_AUTH_TOKEN=...
 TWILIO_CALLER_ID=+1234567890
 ```
 
-The app works without these for basic testing!
+The server can start without these, but health endpoints are the only thing that will work without OpenAI.
+
+Note: `/agent/turn` and the Twilio voice flow require OpenAI.
 
 ## Project Structure
 
@@ -187,7 +185,7 @@ The app works without these for basic testing!
 Agent_Messiah/
 ├── app/                    # Application code
 │   ├── main.py            # FastAPI routes
-│   ├── agent_logic.py     # Conversation logic
+│   ├── routers/           # Route modules (core/agent/outbound/twilio)
 │   ├── models.py          # Data models
 │   ├── leads_store.py     # Lead management
 │   ├── calendar_store.py  # Meeting scheduling
@@ -199,8 +197,8 @@ Agent_Messiah/
 ## Next Steps
 
 - See [README.md](../README.md) for complete documentation
-- See [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for what's been built
-- See [PLANNING.md](PLANNING.md) for project planning details
+
+- For real outbound phone calls with Twilio (requires ngrok): see [VOICE_CALLING_GUIDE.md](VOICE_CALLING_GUIDE.md)
 
 ## Troubleshooting
 

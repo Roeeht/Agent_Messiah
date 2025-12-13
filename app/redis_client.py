@@ -1,29 +1,28 @@
-"""
-Redis client for session management and caching.
-Used to store conversation state during active voice calls.
+"""In-memory session management.
+
+This project intentionally runs without Redis.
+
+We keep a per-call session store in memory so the Twilio webhooks can share
+state across multiple HTTP requests during a call.
+
+Notes:
+- Sessions do not survive process restarts.
+- This is ideal for simple local development (`uvicorn --reload`).
 """
 
-import redis
+from __future__ import annotations
+
 import json
-from typing import Optional, Dict, Any
-import time
 import os
+import time
+from typing import Any, Dict, Optional
+
 from app.config import config
 
-# Initialize Redis client
-try:
-    redis_client = redis.from_url(
-        config.REDIS_URL,
-        decode_responses=True,  # Automatically decode bytes to strings
-        socket_connect_timeout=5,
-        socket_timeout=5
-    )
-    # Test connection
-    redis_client.ping()
-    REDIS_AVAILABLE = True
-except (redis.ConnectionError, redis.TimeoutError):
-    redis_client = None
-    REDIS_AVAILABLE = False
+
+# Compatibility exports: older code/health checks reference these.
+redis_client = None
+REDIS_AVAILABLE = False
 
 
 # In-memory fallback for local/dev when Redis is unavailable.
@@ -98,15 +97,7 @@ class SessionManager:
         if not call_sid:
             return None
 
-        if not REDIS_AVAILABLE:
-            return _INMEM_SESSIONS.get(call_sid)
-        
-        key = f"{cls.SESSION_PREFIX}{call_sid}"
-        data = redis_client.get(key)
-        
-        if data:
-            return json.loads(data)
-        return None
+        return _INMEM_SESSIONS.get(call_sid)
     
     @classmethod
     def save_session(cls, call_sid: str, session_data: Dict[str, Any], ttl: Optional[int] = None) -> bool:
@@ -116,7 +107,7 @@ class SessionManager:
         Args:
             call_sid: Twilio Call SID
             session_data: Dictionary of session data
-            ttl: Time to live in seconds (default: config.REDIS_SESSION_TTL)
+            ttl: Ignored (sessions are in-memory)
             
         Returns:
             True if saved successfully
@@ -124,22 +115,10 @@ class SessionManager:
         if not call_sid:
             return False
 
-        if not REDIS_AVAILABLE:
-            _INMEM_SESSIONS[call_sid] = session_data
-            return True
-        
-        key = f"{cls.SESSION_PREFIX}{call_sid}"
-        ttl = ttl or config.REDIS_SESSION_TTL
-        
-        try:
-            redis_client.setex(
-                key,
-                ttl,
-                json.dumps(session_data)
-            )
-            return True
-        except redis.RedisError:
-            return False
+        # TTL is ignored in in-memory mode; sessions live until deleted or the
+        # process restarts.
+        _INMEM_SESSIONS[call_sid] = session_data
+        return True
     
     @classmethod
     def update_session(cls, call_sid: str, updates: Dict[str, Any]) -> bool:
@@ -174,16 +153,8 @@ class SessionManager:
         if not call_sid:
             return False
 
-        if not REDIS_AVAILABLE:
-            _INMEM_SESSIONS.pop(call_sid, None)
-            return True
-        
-        key = f"{cls.SESSION_PREFIX}{call_sid}"
-        try:
-            redis_client.delete(key)
-            return True
-        except redis.RedisError:
-            return False
+        _INMEM_SESSIONS.pop(call_sid, None)
+        return True
     
     @classmethod
     def add_conversation_turn(cls, call_sid: str, role: str, message: str) -> bool:
@@ -297,46 +268,3 @@ class SessionManager:
         if isinstance(limit, int) and limit > 0:
             return events[-limit:]
         return events
-
-
-class CacheManager:
-    """
-    General purpose caching using Redis.
-    """
-    
-    CACHE_PREFIX = "cache:"
-    
-    @classmethod
-    def get(cls, key: str) -> Optional[str]:
-        """Get value from cache."""
-        if not REDIS_AVAILABLE:
-            return None
-        
-        cache_key = f"{cls.CACHE_PREFIX}{key}"
-        return redis_client.get(cache_key)
-    
-    @classmethod
-    def set(cls, key: str, value: str, ttl: int = 3600) -> bool:
-        """Set value in cache with TTL."""
-        if not REDIS_AVAILABLE:
-            return False
-        
-        cache_key = f"{cls.CACHE_PREFIX}{key}"
-        try:
-            redis_client.setex(cache_key, ttl, value)
-            return True
-        except redis.RedisError:
-            return False
-    
-    @classmethod
-    def delete(cls, key: str) -> bool:
-        """Delete value from cache."""
-        if not REDIS_AVAILABLE:
-            return False
-        
-        cache_key = f"{cls.CACHE_PREFIX}{key}"
-        try:
-            redis_client.delete(cache_key)
-            return True
-        except redis.RedisError:
-            return False

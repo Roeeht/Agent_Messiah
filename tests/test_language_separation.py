@@ -10,7 +10,6 @@ HEBREW_PATTERN = re.compile(r'[\u0590-\u05FF]+')
 ALLOWED_HEBREW_FILES = [
     'app/language/caller_he.py',
     'app/language/translator.py',  # Has Hebrew in docstring examples
-    'demo_llm.py',  # Demo file - can have Hebrew examples
     'app/leads_store.py',  # Lead names can be Hebrew (real data)
     'app/calendar_store.py',  # Display text for caller (will be refactored)
 ]

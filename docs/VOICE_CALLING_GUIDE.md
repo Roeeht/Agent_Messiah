@@ -36,7 +36,6 @@ BASE_URL=https://your-ngrok-url.ngrok.io  # Set this after step 3
 
 # Language / voice (recommended defaults)
 CALLER_LANGUAGE=he-IL
-INTERNAL_LANGUAGE=en
 ENABLE_TRANSLATION=True
 
 # Hebrew-capable Twilio TTS voice (optional; defaults to a Hebrew Google voice when CALLER_LANGUAGE starts with "he")
@@ -82,18 +81,18 @@ uvicorn app.main:app --reload
 
 ### 5. Add a Test Lead
 
-The project comes with a few sample leads. To add your own:
+The project comes with sample leads. If you want to call your own phone number, add a lead by editing `app/leads_store.py`.
 
-Edit `app/leads_store.py`:
+Example (add inside `_init_sample_leads()`):
 
 ```python
-create_lead(Lead(
-    id=3,
-    name="Your Name",
-    phone="+1234567890",  # Your actual phone number
-    company="Test Corp",
-    role="Tester"
-))
+create_lead(
+   name="Your Name",
+   company="Test Corp",
+   role="Tester",
+   phone="+1234567890",  # Your actual phone number
+   notes="Local test lead",
+)
 ```
 
 Restart the server.
@@ -129,19 +128,19 @@ Expected response:
 
 ```json
 {
-  "campaign_status": "started",
-  "leads_called": 2,
+  "status": "campaign_initiated",
+  "total_leads": 2,
   "results": [
     {
       "lead_id": 1,
-      "name": "דוד כהן",
-      "status": "success",
+      "lead_name": "Roy Habari Tamir",
+      "status": "initiated",
       "call_sid": "CAxxxxxxxx"
     },
     {
       "lead_id": 2,
-      "name": "שרה לוי",
-      "status": "success",
+      "lead_name": "Gal Miles",
+      "status": "initiated",
       "call_sid": "CAyyyyyyyy"
     }
   ]
@@ -164,7 +163,7 @@ All leads will receive calls!
    איך אתם מטפלים היום בלידים נכנסים?"
    ```
 
-3. **Speech Recognition**: Twilio listens for Hebrew response
+3. **Recording + Transcription**: Twilio records the caller response (`<Record>`), then the server transcribes the audio with OpenAI
 
 4. **Language Pipeline**:
 
@@ -193,19 +192,24 @@ The system uses these webhook endpoints (called by Twilio):
 
    - Triggered when call connects
    - Returns TwiML with Hebrew greeting
-   - Starts speech gathering
+   - Starts recording (`<Record>`) and posts audio to the recording webhook
 
-2. **`POST /twilio/process-speech`**
+2. **`POST /twilio/process-recording`**
 
-   - Triggered after each user speech input
-   - Processes what user said
-   - Returns next agent response as TwiML
-   - Continues conversation or ends call
+   - Triggered after each recorded caller response
+   - Downloads the recording from Twilio, transcribes it, and continues the conversation
+   - Returns next agent response as TwiML (and the next `<Record>`)
 
 3. **`POST /twilio/call-status`**
+
    - Triggered for call events (ringing, answered, completed)
    - Logs status changes
    - Used for monitoring
+
+4. **Optional debug**: **`GET /twilio/debug/{call_sid}`**
+
+   - Disabled by default
+   - Enable with `DEBUG_CALL_EVENTS=True`
 
 ## Testing the Conversation
 
@@ -253,9 +257,9 @@ Check that:
 
 ### Speech Not Recognized
 
-- Speak clearly in Hebrew
-- Check internet connection
-- Twilio's Hebrew STT works best with standard Israeli Hebrew
+- If the caller response isn't understood, check server logs for transcription errors
+- Verify OpenAI is configured (`OPENAI_API_KEY`) and reachable
+- Increase `RECORD_MAX_LENGTH_SECONDS` if callers speak longer sentences
 
 ### ngrok Session Expired
 
@@ -302,7 +306,8 @@ Watch the terminal running `uvicorn` for real-time webhook calls and TwiML gener
 
 - Outbound calls: $0.013 - $0.02/minute
 - Phone number: $1/month
-- Text-to-Speech and Speech-to-Text: Billed by Twilio (see your Twilio voice pricing for exact rates)
+- Text-to-Speech + call minutes: billed by Twilio (see your Twilio voice pricing for exact rates)
+- Transcription + translation: billed by OpenAI (based on your configured models)
 
 ## Production Deployment
 
@@ -311,7 +316,7 @@ For production use:
 1. **Deploy server** to cloud (Railway, Render, Heroku, AWS)
 2. **Use production domain** instead of ngrok for `BASE_URL`
 3. **Add Redis** for conversation state storage
-4. **Implement queue** for campaign processing (Celery, RQ)
+4. **Implement queue** for campaign processing
 5. **Add monitoring** (Sentry, DataDog)
 6. **Set up logging** for all calls
 7. **Implement retry logic** for failed calls
@@ -320,7 +325,7 @@ For production use:
 ## Next Steps
 
 - [ ] Test with your own phone number
-- [ ] Customize greeting message in `app/agent_logic.py`
+- [ ] Customize the initial permission-gate greeting in `app/llm_agent.py` (and the Hebrew fallback text in `app/language/caller_he.py`)
 - [ ] Add more leads to `app/leads_store.py`
 - [ ] Run a small campaign
 - [ ] Review booked meetings

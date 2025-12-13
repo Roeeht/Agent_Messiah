@@ -25,7 +25,7 @@ def get_available_slots() -> list[MeetingSlot]:
     slots.append(MeetingSlot(
         start=tomorrow_10,
         duration_minutes=30,
-        display_text=f"מחר בשעה 10:00 ({tomorrow_10.strftime('%d/%m')})"
+        display_text=f"Tomorrow at 10:00 ({tomorrow_10.strftime('%d/%m')})"
     ))
     
     # Tomorrow at 14:00
@@ -33,7 +33,7 @@ def get_available_slots() -> list[MeetingSlot]:
     slots.append(MeetingSlot(
         start=tomorrow_14,
         duration_minutes=30,
-        display_text=f"מחר בשעה 14:00 ({tomorrow_14.strftime('%d/%m')})"
+        display_text=f"Tomorrow at 14:00 ({tomorrow_14.strftime('%d/%m')})"
     ))
     
     # Day after tomorrow at 10:00
@@ -41,7 +41,7 @@ def get_available_slots() -> list[MeetingSlot]:
     slots.append(MeetingSlot(
         start=day_after_10,
         duration_minutes=30,
-        display_text=f"מחרתיים בשעה 10:00 ({day_after_10.strftime('%d/%m')})"
+        display_text=f"Day after tomorrow at 10:00 ({day_after_10.strftime('%d/%m')})"
     ))
     
     return slots[:2]  # Return only first 2 slots as specified

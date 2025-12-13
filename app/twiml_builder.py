@@ -25,12 +25,13 @@ def _say_attrs() -> str:
 
 
 def _record_timeout_seconds() -> int:
-    timeout_s = int(getattr(config, "RECORD_SILENCE_TIMEOUT_SECONDS", 2) or 2)
+    timeout_s = int(getattr(config, "RECORD_SILENCE_TIMEOUT_SECONDS", 1) or 1)
     # Keep a sane range; too low can clip speech, too high adds latency.
-    if timeout_s < 1:
-        timeout_s = 1
-    if timeout_s > 10:
-        timeout_s = 10
+    # if timeout_s < 1:
+    #     timeout_s = 1
+    # # Cap slightly lower to reduce perceived latency.
+    # if timeout_s > 5:
+    #     timeout_s = 5
     return timeout_s
 
 

@@ -51,6 +51,10 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Local runtime artifacts
+debug_calls/
+server.log
+
 # Translations
 *.mo
 *.pot

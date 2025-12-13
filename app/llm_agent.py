@@ -42,10 +42,13 @@ You call leads by phone to:
 ## Conversation Flow
 1. Brief greeting + introduction: "Hi [name], I'm Messiah the agent from Alta"
 2. Short value proposition: "We help companies increase sales with AI agents"
-3. Qualifying question: "How do you handle inbound leads today?"
-4. If interested - 1-2 more qualifying questions
-5. If strong interest - offer meeting
-6. Set specific time from options provided
+3. Permission gate (YES/NO): Ask if it's a good time to talk. The lead should answer ONLY yes or no.
+    - If NO: politely end the call (use end_call)
+    - If YES: continue to the next step
+4. Qualifying question: "How do you handle inbound leads today?"
+5. If interested - 1-2 more qualifying questions
+6. If strong interest - offer meeting
+7. Set specific time from options provided
 
 ## Tools Available
 When ready to book a meeting, call offer_meeting_slots.
@@ -58,6 +61,48 @@ If customer not interested at all, call end_call.
 - Don't discuss pricing (that's for the meeting)
 - Be authentic and natural
 """
+
+
+def _ensure_only_yes_no_instruction(text: str) -> str:
+    t = (text or "").strip()
+    if not t:
+        return "Please answer ONLY yes or no."
+
+    lowered = t.lower()
+    if "only yes or no" in lowered:
+        return t
+
+    if "please answer yes or no" in lowered:
+        return t.replace("Please answer yes or no", "Please answer ONLY yes or no")
+
+    if "yes or no" in lowered:
+        return t
+
+    if t.endswith(('.', '!', '?')):
+        return f"{t} Please answer ONLY yes or no."
+
+    return f"{t}. Please answer ONLY yes or no."
+
+
+def get_permission_gate_greeting(lead: Optional[Lead]) -> str:
+    """Return a fast, deterministic permission-gate greeting (English only).
+
+    This is intentionally non-LLM to minimize latency at the start of the call.
+    """
+
+    first_name = None
+    if lead and getattr(lead, "name", None):
+        try:
+            first_name = (lead.name or "").split()[0] or None
+        except Exception:
+            first_name = None
+
+    who = first_name or "there"
+    greeting = (
+        f"Hi {who}! I'm Messiah from Alta. We help companies increase sales with AI agents. "
+        "Is this a good time to talk? Please answer ONLY yes or no."
+    )
+    return _ensure_only_yes_no_instruction(greeting)
 
 # Function definitions for OpenAI function calling
 FUNCTIONS = [
@@ -282,7 +327,10 @@ def get_initial_greeting(lead: Optional[Lead]) -> str:
         Greeting message in English (will be translated to Hebrew at endpoint)
     """
     if not lead:
-        return "Hello! I'm the agent from Alta. We help companies increase sales with AI agents. How do you handle inbound leads today?"
+        return (
+            "Hello! I'm the agent from Alta. We help companies increase sales with AI agents. "
+            "Is this a good time to talk? Please answer ONLY yes or no."
+        )
     
     # Use LLM to generate personalized greeting
     messages = [
@@ -303,10 +351,17 @@ Generate a short personalized greeting (1-2 sentences) in ENGLISH only. Do NOT u
             temperature=0.8,
             max_tokens=200,
         )
-        
-        return response.choices[0].message.content or f"Hi {lead.name.split()[0]}! I'm the agent from Alta. We help companies increase sales with AI agents. How do you handle inbound leads today?"
+
+        greeting = response.choices[0].message.content or (
+            f"Hi {lead.name.split()[0]}! I'm the agent from Alta. We help companies increase sales with AI agents. "
+            "Is this a good time to talk? Please answer ONLY yes or no."
+        )
+        return _ensure_only_yes_no_instruction(greeting)
     
     except Exception as e:
         print(f"OpenAI API error in greeting: {e}")
         lead_name = lead.name.split()[0] if lead else "there"
-        return f"Hi {lead_name}! I'm the agent from Alta. We help companies increase sales with AI agents. How do you handle inbound leads today?"
+        return (
+            f"Hi {lead_name}! I'm the agent from Alta. We help companies increase sales with AI agents. "
+            "Is this a good time to talk? Please answer ONLY yes or no."
+        )

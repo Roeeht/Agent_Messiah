@@ -1,83 +1,38 @@
 # Agent Messiah 🤖📞
 
-**Production-Ready Hebrew AI Sales Agent**
+**Hebrew AI Sales Agent (simple local dev workflow)**
 
-A production-grade outbound calling system with a Hebrew caller experience, an English-only internal agent, and an HE↔EN translation pipeline.
+Outbound calling system with a Hebrew caller experience, an English-only internal agent, and an HE↔EN translation pipeline.
 
-> 🚀 **Quick Start**: Docker: `docker-compose up -d` | See [docs/PRODUCTION.md](docs/PRODUCTION.md) for deployment  
-> 📞 **Voice Calling**: See [docs/VOICE_CALLING_GUIDE.md](docs/VOICE_CALLING_GUIDE.md) for Twilio setup  
-> 🤖 **LLM Integration**: See [docs/LLM_INTEGRATION.md](docs/LLM_INTEGRATION.md) for OpenAI configuration  
-> 🔄 **Migration**: Upgrading from MVP? See [docs/MIGRATION.md](docs/MIGRATION.md)
+This repo is intentionally set up to run locally with:
+
+- `uvicorn app.main:app --reload`
+- In-memory lead + meeting stores (no database)
+- No Docker / Compose / Celery required
 
 ## Overview
 
-Agent Messiah is a **production-ready** outbound calling solution that enables Alta to run Hebrew-speaking sales campaigns at scale. The system features:
+Agent Messiah is an outbound calling solution that enables Alta to run Hebrew-speaking sales calls. The system features:
 
 - **🧠 OpenAI GPT-4o-mini integration** for natural, context-aware agent conversations (English internally)
 - **🌍 HE↔EN translation pipeline** so callers always hear Hebrew while internal logic stays English-only
-- **📊 PostgreSQL database** for persistent lead and meeting storage
-- **⚡ Redis session management** for stateful voice conversations
-- **🔐 Enterprise security** with API authentication and webhook validation
-- **📈 Prometheus metrics** for monitoring and observability
-- **🐳 Docker deployment** with full containerization
-- **🔄 Async job processing** with Celery for campaigns
+- **📊 In-memory stores** for leads and meeting scheduling (simple local dev)
+- **⚡ In-memory session management** for stateful voice conversations
+- **🔐 API key protection** for debug endpoints (optional)
 - **💬 Structured JSON logging** for production debugging
 
-## Production Features
-
-| Feature                 | Status | Description                                                       |
-| ----------------------- | ------ | ----------------------------------------------------------------- |
-| 🗄️ Database Persistence | ✅     | PostgreSQL with SQLAlchemy ORM                                    |
-| 🎯 Redis Sessions       | ✅     | Conversation state management                                     |
-| 🧠 OpenAI Integration   | ✅     | GPT-4o-mini for intelligent conversations                         |
-| 📞 Twilio Voice         | ✅     | Hebrew voice calling (Twilio `<Say>` with a Hebrew-capable voice) |
-| 🔐 Security             | ✅     | API auth + webhook validation                                     |
-| 📊 Monitoring           | ✅     | Health checks + Prometheus metrics                                |
-| 📝 Structured Logging   | ✅     | JSON logs with structlog                                          |
-| ⚙️ Async Tasks          | ✅     | Celery workers for campaigns                                      |
-| 🐳 Docker               | ✅     | Full containerization with compose                                |
-| ✅ Tests                | ✅     | Comprehensive test suite                                          |
-
 ## Quick Start
-
-### Option 1: Docker (Recommended)
-
-```bash
-# Clone and configure
-git clone <repo>
-cd Agent_Messiah
-cp .env.docker.example .env.docker
-# Edit .env.docker with your API keys
-
-# Start all services
-docker-compose up -d
-
-# Check health
-curl http://localhost:8000/health/ready
-```
-
-### Option 2: Manual Setup
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up PostgreSQL and Redis
-createdb agent_messiah
-brew install redis && brew services start redis
-
 # Configure
 cp .env.example .env
 # Edit .env with your credentials
 
-# Run migrations
-alembic upgrade head
-
 # Start application
 uvicorn app.main:app --reload
-
-# Start Celery worker (separate terminal)
-celery -A app.celery_tasks worker --loglevel=info
 ```
 
 ## Project Structure
@@ -85,27 +40,21 @@ celery -A app.celery_tasks worker --loglevel=info
 ```
 Agent_Messiah/
 ├── app/
-│   ├── main.py              # FastAPI app with production middleware
+│   ├── main.py              # FastAPI app composition (includes routers)
+│   ├── routers/             # Route modules (core/agent/outbound/twilio)
 │   ├── models.py            # Pydantic data models
 │   ├── config.py            # Configuration with env vars
-│   ├── database.py          # SQLAlchemy database setup
-│   ├── db_models.py         # Database models (Lead, Meeting, CallSession)
-│   ├── services.py          # Business logic layer
-│   ├── redis_client.py      # Redis session management
+│   ├── redis_client.py      # In-memory call session store
 │   ├── logging_config.py    # Structured logging setup
 │   ├── security.py          # Authentication & validation
 │   ├── health.py            # Health check endpoints
 │   ├── llm_agent.py         # OpenAI GPT integration
-│   ├── agent_logic.py       # Rule-based fallback logic
-│   ├── celery_tasks.py      # Async job processing
+│   ├── twiml_builder.py      # Twilio TwiML builders
+│   ├── language/            # Hebrew caller messages + translation utilities
 │   ├── leads_store.py       # Lead management
 │   └── calendar_store.py    # Meeting scheduling
-├── alembic/                 # Database migrations
 ├── docs/                    # Documentation
-├── scripts/                 # Helper scripts
 ├── tests/                   # Test suite
-├── docker-compose.yml       # Multi-container setup
-├── Dockerfile              # Production container
 └── README.md               # This file
 ```
 
@@ -204,7 +153,7 @@ The agent will:
 
 1. Call the lead's phone number
 2. Speak the greeting in Hebrew (via Twilio `<Say>` using a Hebrew-capable voice)
-3. Listen for responses using speech-to-text
+3. Record each caller response (`<Record>`) and transcribe it with OpenAI
 4. Continue the conversation based on responses
 5. Offer meeting slots if lead is interested
 6. Book the meeting automatically
@@ -215,7 +164,7 @@ The agent will:
 
 **Endpoint**: `POST /agent/turn`
 
-Note: this endpoint is a direct agent turn (no Twilio). In `AGENT_MODE=llm` the agent responds in English (by design). For the Hebrew caller experience, use the Twilio flow.
+Note: this endpoint is a direct agent turn (no Twilio). The system is LLM-only and responds in English (by design). For the Hebrew caller experience, use the Twilio flow (HE↔EN translation around the LLM).
 
 **Request**:
 
@@ -233,7 +182,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
 
 ```json
 {
-  "agent_reply": "Hi David! I'm the agent from Alta. We help companies increase sales with AI agents. How do you handle inbound leads today?",
+  "agent_reply": "Hi David! I'm the agent from Alta. We help companies increase sales with AI agents. Is this a good time to talk? Please answer yes or no.",
   "action": null,
   "action_payload": null
 }
@@ -244,16 +193,20 @@ curl -X POST "http://localhost:8000/agent/turn" \
 **Twilio Voice Webhook** (called by Twilio when call connects):
 
 - `POST /twilio/voice` - Initiates conversation with Hebrew greeting
-- Returns TwiML with speech gathering
+- Returns TwiML that records the caller (`<Record>`) and posts audio to the recording webhook
 
-**Speech Processing** (called by Twilio after each user response):
+**Recording Processing** (called by Twilio after each recorded user response):
 
-- `POST /twilio/process-speech` - Processes speech input and continues conversation
-- Returns TwiML with agent response and next speech gather
+- `POST /twilio/process-recording` - Downloads the recording, transcribes it, and continues the conversation
+- Returns TwiML with the agent response and the next `<Record>`
 
 **Call Status** (called by Twilio for call events):
 
 - `POST /twilio/call-status` - Logs call status changes
+
+**Optional Debug (development only)**:
+
+- `GET /twilio/debug/{call_sid}` - Returns recent per-call debug events (requires `DEBUG_CALL_EVENTS=True`)
 
 ### Example Conversation Flow
 
@@ -262,7 +215,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
 ```bash
 curl -X POST "http://localhost:8000/agent/turn" \
   -H "Content-Type: application/json" \
-  -d '{"lead_id": 1, "user_utterance": "שלום", "history": []}'
+   -d '{"lead_id": 1, "user_utterance": "Hello", "history": []}'
 ```
 
 2. **Ask "who are you"**:
@@ -270,7 +223,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
 ```bash
 curl -X POST "http://localhost:8000/agent/turn" \
   -H "Content-Type: application/json" \
-  -d '{"lead_id": 1, "user_utterance": "מי אתה?", "history": []}'
+   -d '{"lead_id": 1, "user_utterance": "Who are you?", "history": []}'
 ```
 
 3. **Show interest**:
@@ -280,10 +233,10 @@ curl -X POST "http://localhost:8000/agent/turn" \
   -H "Content-Type: application/json" \
   -d '{
     "lead_id": 1,
-    "user_utterance": "כן, נשמע מעניין",
+      "user_utterance": "Yes, sounds interesting",
     "history": [
-      {"user": "שלום", "agent": "היי דוד!..."},
-      {"user": "יש לנו SDR", "agent": "מעניין. יש לכם צוות SDR?"}
+         {"user": "Hello", "agent": "Hi Roy!..."},
+         {"user": "We have an SDR team", "agent": "Got it. ..."}
     ]
   }'
 ```
@@ -295,7 +248,7 @@ Response will include `"action": "offer_slots"` with available meeting times.
 ```bash
 curl -X POST "http://localhost:8000/agent/turn" \
   -H "Content-Type: application/json" \
-  -d '{"lead_id": 1, "user_utterance": "לא מעוניין", "history": []}'
+   -d '{"lead_id": 1, "user_utterance": "Not interested", "history": []}'
 ```
 
 Response will include `"action": "end_call"`.
@@ -331,7 +284,7 @@ pytest --cov=app tests/
 Run specific test file:
 
 ```bash
-pytest tests/test_agent_logic.py -v
+pytest tests/test_api_routes.py -v
 ```
 
 ## Implementation Details
@@ -346,10 +299,9 @@ pytest tests/test_agent_logic.py -v
 
 2. **Agent Logic**
 
-   - Rule-based conversation flow in natural Israeli Hebrew
+   - LLM-only conversation flow (English internal), translated for Hebrew callers in the Twilio flow
    - Context-aware responses based on conversation history
-   - Qualifying questions about lead handling and SDR teams
-   - Meeting booking flow with slot selection
+   - Qualification + meeting booking via OpenAI function calling
 
 3. **API Endpoints**
 
@@ -359,7 +311,7 @@ pytest tests/test_agent_logic.py -v
    - `/twilio/voice` - Twilio webhook with basic TwiML
 
 4. **Tests**
-   - Agent logic tests (Hebrew responses, flow control)
+   - Agent/voice flow tests (offline-safe via mocks)
    - Calendar store tests (slots, booking)
    - API route tests (FastAPI TestClient)
 
@@ -384,7 +336,7 @@ If this were a real production system, the next steps would be:
 1. **Database Integration**
 
    - Replace in-memory storage with PostgreSQL/MongoDB
-   - Add proper schema migrations (Alembic)
+   - Add proper schema migrations
    - Implement connection pooling
 
 2. **LLM Integration**
@@ -395,7 +347,7 @@ If this were a real production system, the next steps would be:
 
 3. **Twilio Voice Implementation**
 
-   - Complete speech-to-text integration (Twilio/Deepgram)
+   - Improve the recording → transcription pipeline (latency, accuracy, retries)
    - Keep Hebrew TTS voice configuration stable (e.g., `TWILIO_TTS_VOICE=Google.he-IL-Standard-A`)
    - Add WebSocket support for real-time audio streaming
    - Handle interruptions and natural conversation flow
@@ -417,7 +369,7 @@ If this were a real production system, the next steps would be:
 6. **Monitoring & Observability**
 
    - Structured logging (JSON logs)
-   - Metrics (Prometheus/Datadog)
+   - Metrics
    - Distributed tracing (OpenTelemetry)
    - Error tracking (Sentry)
 
@@ -471,7 +423,7 @@ If this were a real production system, the next steps would be:
 Create a `.env` file based on `.env.example`:
 
 ```bash
-# OpenAI Configuration (optional for rule-based version)
+# OpenAI Configuration (required for LLM-only agent)
 OPENAI_API_KEY=sk-...
 
 # Twilio Configuration (optional for telephony)
@@ -493,13 +445,11 @@ DEBUG=True
 
 ## Architecture Decisions
 
-### Why Rule-Based for v1?
+### Why LLM-Only?
 
-- Faster development and testing
-- Predictable responses
-- Lower cost (no LLM API calls)
-- Easier to debug conversation flows
-- Foundation for LLM enhancement
+- Higher conversational flexibility
+- Clear single-path behavior (no mode switching)
+- Meeting booking via function-calling actions
 
 ### Why In-Memory Storage?
 
