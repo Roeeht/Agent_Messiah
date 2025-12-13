@@ -25,6 +25,14 @@ Agent Messiah is an outbound calling solution that enables Alta to run Hebrew-sp
 - **🔐 API key protection** for debug endpoints (optional)
 - **💬 Structured JSON logging** for production debugging
 
+## Assumptions & Scope
+
+- Voice-first product: I assumed the primary deliverable is a Hebrew outbound *voice-calling* agent (Twilio), not a text-first chat product. A text endpoint (`POST /agent/turn`) exists mainly for debugging and quick iteration, but the default user path is voice calling.
+- Leads are hard-coded: I assumed a lightweight local-dev workflow where leads are predefined in code (see app/leads_store.py), rather than imported from an external CRM or database.
+- Local development environment: The setup and testing workflow assumes local development (tested on macOS) with a public HTTPS tunnel (ngrok) for Twilio webhooks.
+- LLM-only behavior: The agent runs as LLM-only (no rule-based fallback) and expects `OPENAI_API_KEY` for real voice calls (LLM + transcription).
+- Hebrew caller / English internal: I assumed strict language separation: caller-facing output is Hebrew, while internal reasoning/logging/state is English.
+
 ## Quick Start (Voice Calling - Default)
 
 This is the default way to use Agent Messiah (Twilio outbound calling + Hebrew caller experience).
@@ -496,6 +504,21 @@ TWILIO_CALLER_ID=+1234567890
 # Application Settings
 DEBUG=True
 ```
+## Potential Improvements
+
+- Import leads from CSV:
+  - Add a small importer to load leads from a CSV file at startup (e.g., `LEADS_CSV_PATH=./leads.csv`) instead of hard-coding them in app/leads_store.py.
+- Persist leads/meetings:
+  - Replace in-memory stores with a DB (SQLite/Postgres) so data survives restarts and supports larger campaigns.
+- Better campaign execution:
+  - Run campaigns asynchronously with rate limiting and retries (so `/outbound/campaign` doesn’t block and doesn’t sleep inline).
+- Faster voice loop:
+  - Reduce turn latency further via streaming transcription (or optimized transcription settings) and careful tuning of recording silence timeout/max length.
+- Stronger webhook security:
+  - Validate Twilio signatures for all webhooks, and restrict debug endpoints in production.
+- Better observability:
+  - Add a simple call timeline view (or export) using the existing debug events for easier diagnosis.
+ 
 
 ## Technologies Used
 
