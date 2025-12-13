@@ -7,13 +7,14 @@ All text spoken to callers on the phone must be retrieved from this module.
 """
 
 from typing import Dict
+import re
 
 # Caller-facing messages in Hebrew
 CALLER_MESSAGES: Dict[str, str] = {
     # Greetings
-    "greeting_default": "שלום! אני הסוכן מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכנים חכמים."
+    "greeting_default": "שלום! אני הסוכן משיח מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכנים חכמים."
 ,
-    "greeting_with_name": "שלום {name}! אני הסוכן מAlta. איך אתה?",
+    "greeting_with_name": "שלום {name}! אני משיח הסוכן מAlta. איך אתה?",
 
     # Generic short fallback
     "fallback_short": "שלום",
@@ -22,14 +23,14 @@ CALLER_MESSAGES: Dict[str, str] = {
     "ask_time": "איזה זמן מתאים לך?",
     
     # No response scenarios
-    "no_response": "מצטערת, לא שמעתי תשובה. תודה ושיהיה יום נהדר!",
-    "no_response_retry": "מצטערת, לא שמעתי תשובה. אם תרצה לדבר, תתקשר שוב. יום טוב!",
+    "no_response": "מצטער, לא שמעתי תשובה. תודה ושיהיה יום נהדר!",
+    "no_response_retry": "מצטער, לא שמעתי תשובה. אם תרצה לדבר, תתקשר שוב. יום טוב!",
 
     # ASR fallback (when speech recognition is unreliable)
     "asr_retry_recording": "לא הצלחתי להבין. בבקשה תגיד שוב.",
     
     # Errors
-    "technical_error": "מצטערים, ישנה בעיה טכנית. ננסה שוב מאוחר יותר. להתראות!",
+    "technical_error": "מצטער, ישנה בעיה טכנית. ננסה שוב מאוחר יותר. להתראות!",
     
     # Closings
     "goodbye": "תודה ושיהיה יום נהדר!",
@@ -52,6 +53,57 @@ def get_not_interested_phrases() -> list[str]:
         "תסיר",
         "אל תתקשר",
     ]
+
+
+def is_goodbye_message(text: str) -> bool:
+    """Heuristic: does the given Hebrew text look like a closing/goodbye?
+
+    Kept here so Hebrew markers stay in approved files.
+    """
+    t = (text or "").strip()
+    if not t:
+        return False
+
+    goodbye = get_caller_text("goodbye")
+    if goodbye and goodbye in t:
+        return True
+
+    # Common closings.
+    if any(kw in t for kw in [
+        "להתראות",
+        "ביי",
+        "נתראה",
+        "לילה טוב",
+        "ערב טוב",
+        "שבת שלום",
+    ]):
+        return True
+
+    # Day-wishes like: "שיהיה (לך) יום טוב/נהדר/נפלא/...".
+    if re.search(r"שיהיה(?: לך)? יום (?:טוב|נפלא|נהדר|מקסים|מעולה)", t):
+        return True
+    if re.search(r"יום (?:טוב|נפלא|נהדר|מקסים|מעולה)", t):
+        return True
+
+    return False
+
+
+def is_transcription_instructions_echo(text: str) -> bool:
+    """Detect when a transcript is actually echoed instructions/prompt.
+
+    Some transcription backends may incorrectly return the instruction text.
+    Kept here so Hebrew markers stay in approved files.
+    """
+    t = (text or "").strip()
+    if not t:
+        return False
+
+    # Known fragments that have shown up when prompts were echoed back.
+    return any(fragment in t for fragment in [
+        "תמלול של שיחת טלפון",
+        "תמלל רק את מה שהדובר",
+        "החזר טקסט ריק",
+    ])
 
 
 def get_caller_text(key: str, **variables) -> str:

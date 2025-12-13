@@ -35,9 +35,9 @@ def test_system_prompt_contains_key_info():
     
     # Check for key elements
     assert "Alta" in prompt
-    assert "AI" in prompt or "סוכן" in prompt
-    assert "עברית" in prompt or "ישראלית" in prompt
-    assert "פגישה" in prompt
+    assert "AI" in prompt
+    assert "ONLY in English" in prompt or "English" in prompt
+    assert "translated" in prompt.lower()
     
 
 def test_functions_defined():
@@ -55,7 +55,7 @@ def test_decide_next_turn_llm_basic_conversation(mock_client, sample_lead):
     # Mock OpenAI response
     mock_response = MagicMock()
     mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "שלום! איך אפשר לעזור לך?"
+    mock_response.choices[0].message.content = "Hello! How can I help you today?"
     mock_response.choices[0].message.function_call = None
     
     mock_client.chat.completions.create.return_value = mock_response
@@ -138,7 +138,7 @@ def test_decide_next_turn_llm_book_meeting(mock_client, sample_lead):
     assert payload is not None
     assert "meeting_id" in payload
     assert "calendar_link" in payload
-    assert "קבעתי" in agent_reply or "פגישה" in agent_reply
+    assert "scheduled" in agent_reply.lower() or "meeting" in agent_reply.lower()
 
 
 @patch('app.llm_agent.client')
@@ -166,7 +166,7 @@ def test_decide_next_turn_llm_end_call(mock_client, sample_lead):
     assert action == "end_call"
     assert payload is not None
     assert "reason" in payload
-    assert "מבין" in agent_reply or "טוב" in agent_reply
+    assert "understand" in agent_reply.lower() or "good day" in agent_reply.lower()
 
 
 @patch('app.llm_agent.client')
@@ -175,7 +175,7 @@ def test_get_initial_greeting_with_lead(mock_client, sample_lead):
     # Mock OpenAI response
     mock_response = MagicMock()
     mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "שלום דוד! אני הסוכן מAlta. איך אפשר לעזור?"
+    mock_response.choices[0].message.content = "Hi David! I'm the agent from Alta. How do you handle inbound leads today?"
     
     mock_client.chat.completions.create.return_value = mock_response
     
@@ -185,7 +185,7 @@ def test_get_initial_greeting_with_lead(mock_client, sample_lead):
     assert isinstance(greeting, str)
     assert len(greeting) > 0
     # Should be personalized
-    assert "דוד" in greeting or "Alta" in greeting.lower()
+    assert "דוד" in greeting or "alta" in greeting.lower()
 
 
 def test_get_initial_greeting_without_lead():
@@ -195,7 +195,7 @@ def test_get_initial_greeting_without_lead():
     # Verify generic greeting
     assert isinstance(greeting, str)
     assert len(greeting) > 0
-    assert "Alta" in greeting or "אלטה" in greeting
+    assert "Alta" in greeting
 
 
 @patch('app.llm_agent.client')
@@ -217,7 +217,7 @@ def test_decide_next_turn_llm_error_handling(mock_client, sample_lead):
     assert len(agent_reply) > 0
     assert action is None
     # Should contain error recovery message
-    assert "בעיה" in agent_reply or "מצטער" in agent_reply
+    assert "sorry" in agent_reply.lower() or "technical" in agent_reply.lower()
 
 
 @patch('app.llm_agent.client')

@@ -48,10 +48,10 @@ def _init_sample_leads():
             notes="Warm lead from conference"
         )
         create_lead(
-            name="שרה לוי",
+            name="Gal Miles",
             company="Sales Corp",
             role="VP Sales",
-            phone="+972507654321",
+            phone="[REDACTED]",
             notes="Inbound inquiry"
         )
 

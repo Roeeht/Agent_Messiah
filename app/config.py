@@ -51,6 +51,9 @@ class Config:
     # (Twilio <Gather input="speech"> can misrecognize Hebrew as English-like gibberish.)
     HEBREW_ASR_FALLBACK_TO_RECORDING: bool = os.getenv("HEBREW_ASR_FALLBACK_TO_RECORDING", "True").lower() == "true"
     RECORD_MAX_LENGTH_SECONDS: int = int(os.getenv("RECORD_MAX_LENGTH_SECONDS", "15"))
+    # Twilio <Record timeout>: seconds of silence before Twilio ends the recording and hits the action URL.
+    # Lower values reduce latency but can clip trailing words; 2 is a reasonable default.
+    RECORD_SILENCE_TIMEOUT_SECONDS: int = int(os.getenv("RECORD_SILENCE_TIMEOUT_SECONDS", "2"))
 
     # OpenAI transcription model for recorded audio
     OPENAI_TRANSCRIBE_MODEL: str = os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")

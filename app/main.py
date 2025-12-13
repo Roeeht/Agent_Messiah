@@ -588,7 +588,7 @@ async def twilio_process_speech(
         allow_record_fallback: bool,
     ) -> Response:
         from app.language.translator import translate_he_to_en, translate_en_to_he
-        from app.language.caller_he import get_caller_text
+        from app.language.caller_he import get_caller_text, is_goodbye_message
         from app.twiml_builder import (
             build_hangup_twiml,
             build_continue_twiml,
@@ -628,16 +628,7 @@ async def twilio_process_speech(
             goodbye_he = (get_caller_text("goodbye") or "").strip()
             if goodbye_he and goodbye_he in (reply_he or ""):
                 return True
-            # Avoid false-positives on polite mid-call "תודה".
-            he = (reply_he or "")
-            if any(kw in he for kw in ["להתראות", "ביי", "נתראה", "לילה טוב", "ערב טוב", "שבת שלום"]):
-                return True
-            # Day-wishes like "שיהיה לך יום נפלא/נהדר/מקסים/טוב".
-            if re.search(r"שיהיה(?: לך)? יום (?:טוב|נפלא|נהדר|מקסים|מעולה)", he):
-                return True
-            if re.search(r"יום (?:טוב|נפלא|נהדר|מקסים|מעולה)", he):
-                return True
-            return False
+            return is_goodbye_message(reply_he)
 
         speech_norm = (speech_he or "").strip()
         speech_sig = hashlib.sha256(speech_norm.encode("utf-8")).hexdigest() if speech_norm else ""
@@ -970,12 +961,10 @@ async def twilio_process_recording(
 
     # Defensive: some transcription backends may echo prompt/instructions.
     # If we detect that, treat it as an empty/invalid transcript.
+    from app.language.caller_he import is_transcription_instructions_echo
+
     transcript_norm = (transcript_he or "").strip()
-    if transcript_norm and (
-        "תמלול של שיחת טלפון" in transcript_norm
-        or "תמלל רק את מה שהדובר" in transcript_norm
-        or "החזר טקסט ריק" in transcript_norm
-    ):
+    if is_transcription_instructions_echo(transcript_norm):
         SessionManager.append_debug_event(
             call_sid,
             "transcription_filtered",
@@ -998,7 +987,7 @@ async def twilio_process_recording(
     # We call the /twilio/process-speech handler logic by duplicating its implementation here.
     # To avoid large duplication, we re-import and inline a small helper.
     from app.language.translator import translate_he_to_en, translate_en_to_he
-    from app.language.caller_he import get_caller_text
+    from app.language.caller_he import get_caller_text, is_goodbye_message
     from app.twiml_builder import (
         build_hangup_twiml,
         build_record_fallback_twiml,
@@ -1038,15 +1027,7 @@ async def twilio_process_recording(
         goodbye_he = (get_caller_text("goodbye") or "").strip()
         if goodbye_he and goodbye_he in (reply_he or ""):
             return True
-        # Extra safety: common Hebrew closings (avoid treating plain "תודה" as a hangup).
-        he = (reply_he or "")
-        if any(kw in he for kw in ["להתראות", "ביי", "נתראה", "לילה טוב", "ערב טוב", "שבת שלום"]):
-            return True
-        if re.search(r"שיהיה(?: לך)? יום (?:טוב|נפלא|נהדר|מקסים|מעולה)", he):
-            return True
-        if re.search(r"יום (?:טוב|נפלא|נהדר|מקסים|מעולה)", he):
-            return True
-        return False
+        return is_goodbye_message(reply_he)
     speech_he = (transcript_he or "").strip()
     speech_sig = hashlib.sha256(speech_he.encode("utf-8")).hexdigest() if speech_he else ""
 

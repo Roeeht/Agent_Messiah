@@ -77,15 +77,15 @@ def test_twiml_builder_no_empty_say():
     twiml = build_voice_twiml(greeting, "CALL123", 1)
     
     # Check no empty Say tags
-    assert '<Say voice="Polly.Ayelet" language="he-IL"></Say>' not in twiml
-    assert '<Say voice="Polly.Ayelet" language="he-IL"/>' not in twiml
+    assert '<Say language="he-IL"></Say>' not in twiml
+    assert '<Say language="he-IL"/>' not in twiml
     assert '<Say' in twiml and '</Say>' in twiml
     
     # Test error TwiML
     error_msg = get_caller_text("technical_error")
     error_twiml = build_error_twiml(error_msg)
     
-    assert '<Say voice="Polly.Ayelet" language="he-IL"></Say>' not in error_twiml
+    assert '<Say language="he-IL"></Say>' not in error_twiml
     assert '<Say' in error_twiml
 
 

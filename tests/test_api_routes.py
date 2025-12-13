@@ -23,7 +23,7 @@ def test_agent_turn_basic_request():
         "/agent/turn",
         json={
             "lead_id": 1,
-            "user_utterance": "שלום",
+            "user_utterance": "Hello",
             "history": []
         }
     )
@@ -46,7 +46,7 @@ def test_agent_turn_who_are_you():
         "/agent/turn",
         json={
             "lead_id": 1,
-            "user_utterance": "מי אתה?",
+            "user_utterance": "Who are you?",
             "history": []
         }
     )
@@ -55,7 +55,7 @@ def test_agent_turn_who_are_you():
     data = response.json()
     
     # Should mention Alta
-    assert "אלטה" in data["agent_reply"] or "Alta" in data["agent_reply"]
+    assert "Alta" in data["agent_reply"]
     assert data["action"] is None
 
 
@@ -65,9 +65,9 @@ def test_agent_turn_not_interested():
         "/agent/turn",
         json={
             "lead_id": 1,
-            "user_utterance": "לא מעוניין",
+            "user_utterance": "Not interested",
             "history": [
-                {"user": "שלום", "agent": "היי!"}
+                {"user": "Hello", "agent": "Hi!"}
             ]
         }
     )
@@ -84,7 +84,7 @@ def test_agent_turn_without_lead():
     response = client.post(
         "/agent/turn",
         json={
-            "user_utterance": "שלום",
+            "user_utterance": "Hello",
             "history": []
         }
     )
@@ -100,7 +100,7 @@ def test_agent_turn_invalid_lead():
         "/agent/turn",
         json={
             "lead_id": 99999,
-            "user_utterance": "שלום",
+            "user_utterance": "Hello",
             "history": []
         }
     )
@@ -145,6 +145,7 @@ def test_twilio_voice_endpoint():
     assert "<Response>" in content
     assert "<Say" in content
     assert "he-IL" in content  # Hebrew language
+    assert "<Record" in content
 
 
 def test_agent_turn_positive_flow():
@@ -154,7 +155,7 @@ def test_agent_turn_positive_flow():
         "/agent/turn",
         json={
             "lead_id": 1,
-            "user_utterance": "שלום",
+            "user_utterance": "Hello",
             "history": []
         }
     )
@@ -162,7 +163,7 @@ def test_agent_turn_positive_flow():
     
     # Build history
     history = [
-        {"user": "שלום", "agent": response1.json()["agent_reply"]}
+        {"user": "Hello", "agent": response1.json()["agent_reply"]}
     ]
     
     # Positive response - this triggers slot offering
@@ -170,7 +171,7 @@ def test_agent_turn_positive_flow():
         "/agent/turn",
         json={
             "lead_id": 1,
-            "user_utterance": "כן, נשמע מעניין מאוד",
+            "user_utterance": "Yes, sounds interesting",
             "history": history
         }
     )

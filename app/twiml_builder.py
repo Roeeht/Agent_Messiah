@@ -24,6 +24,16 @@ def _say_attrs() -> str:
     return attrs
 
 
+def _record_timeout_seconds() -> int:
+    timeout_s = int(getattr(config, "RECORD_SILENCE_TIMEOUT_SECONDS", 2) or 2)
+    # Keep a sane range; too low can clip speech, too high adds latency.
+    if timeout_s < 1:
+        timeout_s = 1
+    if timeout_s > 10:
+        timeout_s = 10
+    return timeout_s
+
+
 def sanitize_say_text(text: str, fallback: str | None = None) -> str:
     """
     Sanitize text for Twilio <Say> tags.
@@ -82,11 +92,12 @@ def build_voice_twiml(greeting_hebrew: str, call_sid: str, lead_id: int) -> str:
     max_len = int(getattr(config, "RECORD_MAX_LENGTH_SECONDS", 10) or 10)
     if max_len <= 0:
         max_len = 10
+    timeout_s = _record_timeout_seconds()
 
     return f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <Response>
     <Say {say_attrs}>{greeting_escaped}</Say>
-        <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"2\" action=\"{action_url_escaped}\" method=\"POST\" />
+    <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"{timeout_s}\" action=\"{action_url_escaped}\" method=\"POST\" />
 </Response>"""
 
 
@@ -143,11 +154,12 @@ def build_record_fallback_twiml(prompt_hebrew: str, call_sid: str, lead_id: int,
     max_len = int(getattr(config, "RECORD_MAX_LENGTH_SECONDS", 10) or 10)
     if max_len <= 0:
         max_len = 10
+    timeout_s = _record_timeout_seconds()
 
     return f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <Response>
     <Say {say_attrs}>{prompt_escaped}</Say>
-        <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"2\" action=\"{action_url_escaped}\" method=\"POST\" />
+    <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"{timeout_s}\" action=\"{action_url_escaped}\" method=\"POST\" />
 </Response>"""
 
 
@@ -173,11 +185,12 @@ def build_continue_twiml(agent_reply_hebrew: str, call_sid: str, lead_id: int, t
     max_len = int(getattr(config, "RECORD_MAX_LENGTH_SECONDS", 10) or 10)
     if max_len <= 0:
         max_len = 10
+    timeout_s = _record_timeout_seconds()
 
     return f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <Response>
     <Say {say_attrs}>{reply_escaped}</Say>
-        <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"2\" action=\"{next_url_escaped}\" method=\"POST\" />
+    <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"{timeout_s}\" action=\"{next_url_escaped}\" method=\"POST\" />
 </Response>"""
 
 
@@ -204,12 +217,13 @@ def build_offer_slots_twiml(slots_message_hebrew: str, call_sid: str, lead_id: i
     max_len = int(getattr(config, "RECORD_MAX_LENGTH_SECONDS", 10) or 10)
     if max_len <= 0:
         max_len = 10
+    timeout_s = _record_timeout_seconds()
 
     return f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <Response>
     <Say {say_attrs}>{slots_escaped}</Say>
     <Say {say_attrs}>{ask_time}</Say>
-        <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"2\" action=\"{next_url_escaped}\" method=\"POST\" />
+    <Record playBeep=\"false\" maxLength=\"{max_len}\" timeout=\"{timeout_s}\" action=\"{next_url_escaped}\" method=\"POST\" />
 </Response>"""
 
 

@@ -164,9 +164,10 @@ def _determine_conversation_stage(history: list[dict]) -> str:
     
     # Check if we already offered slots (check for time indicators)
     for turn in history:
-        agent_msg = turn.get("agent", "")
+        agent_msg = (turn.get("agent", "") or "")
+        agent_msg_l = agent_msg.lower()
         # Look for slot offering indicators
-        if any(indicator in agent_msg for indicator in ["availability", "10:00", "14:00", "tomorrow", "day after", "schedule", "works for you"]):
+        if any(indicator in agent_msg_l for indicator in ["availability", "10:00", "14:00", "tomorrow", "day after", "schedule", "works for you"]):
             return ConversationState.OFFERING_SLOTS
     
     # Check qualifying stage
@@ -182,7 +183,7 @@ def _count_qualifying_questions(history: list[dict]) -> int:
     count = 0
     
     for turn in history:
-        agent_msg = turn.get("agent", "")
+        agent_msg = (turn.get("agent", "") or "").lower()
         if any(marker in agent_msg for marker in question_markers):
             count += 1
     
