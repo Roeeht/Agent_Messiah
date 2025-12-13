@@ -2,12 +2,16 @@
 
 **Hebrew AI Sales Agent (simple local dev workflow)**
 
+Tested on macOS (local dev).
+
 Outbound calling system with a Hebrew caller experience, an English-only internal agent, and an HE↔EN translation pipeline.
 
-This repo is intentionally set up to run locally with:
+This repo is intentionally set up to run locally with a voice-calling-first workflow:
 
 - `uvicorn app.main:app --reload`
 - In-memory lead + meeting stores (no database)
+- Twilio outbound calls + Hebrew caller experience (default)
+- ngrok to expose local webhooks to Twilio
 - No Docker / Compose / Celery required
 
 ## Overview
@@ -21,18 +25,49 @@ Agent Messiah is an outbound calling solution that enables Alta to run Hebrew-sp
 - **🔐 API key protection** for debug endpoints (optional)
 - **💬 Structured JSON logging** for production debugging
 
-## Quick Start
+## Quick Start (Voice Calling - Default)
+
+This is the default way to use Agent Messiah (Twilio outbound calling + Hebrew caller experience).
 
 ```bash
-# Install dependencies
+# Create venv + install dependencies
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+
+# Install ngrok
+# macOS (Homebrew):
+brew install ngrok/ngrok/ngrok
+# Linux/Windows: https://ngrok.com/download
 
 # Configure
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env with your credentials (required for voice calling)
 
-# Start application
+# Start the application
 uvicorn app.main:app --reload
+```
+
+In another terminal:
+
+```bash
+# Optional (recommended): connect your ngrok authtoken
+ngrok config add-authtoken <YOUR_NGROK_TOKEN>
+
+# Expose your local server to Twilio (HTTPS)
+ngrok http 8000
+```
+
+Copy the HTTPS URL from ngrok (e.g., `https://abc123.ngrok-free.app`) and set it in `.env`:
+
+```env
+BASE_URL=https://abc123.ngrok-free.app
+```
+
+Restart `uvicorn` after updating `BASE_URL`, then place a call:
+
+```bash
+curl -X POST "http://localhost:8000/outbound/initiate-call?lead_id=1"
 ```
 
 ## Project Structure
@@ -64,8 +99,12 @@ Entry-point docs live in `docs/`.
 
 ### Prerequisites
 
+- Tested on macOS (local dev)
 - Python 3.10 or higher
 - pip (Python package manager)
+- OpenAI API key (required for the LLM + transcription)
+- Twilio account + a voice-capable phone number
+- ngrok (or another HTTPS tunnel) so Twilio can reach your local server
 
 ### Installation
 
@@ -88,14 +127,26 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. **Set up environment variables**
+4. **Install ngrok**
+
+macOS (Homebrew):
+
+```bash
+brew install ngrok/ngrok/ngrok
+```
+
+Linux/Windows:
+
+- Download and install: https://ngrok.com/download
+
+5. **Set up environment variables**
 
 ```bash
 cp .env.example .env
-# Edit .env with your API keys (optional for basic testing)
+# Edit .env with your API keys (voice calling default requires these)
 ```
 
-### Running the Application
+### Running the Application (Voice Calling Default)
 
 Start the FastAPI server:
 
@@ -107,7 +158,15 @@ The API will be available at `http://localhost:8000`
 
 Interactive API docs: `http://localhost:8000/docs`
 
-## Voice Calling Setup (Twilio)
+In another terminal, expose your local server to Twilio:
+
+```bash
+ngrok http 8000
+```
+
+Copy the HTTPS URL from ngrok (e.g., `https://abc123.ngrok-free.app`) into `.env` as `BASE_URL`, then restart the server.
+
+## Voice Calling Setup (Twilio - Default)
 
 ### 1. Get Twilio Credentials
 
@@ -123,17 +182,20 @@ cp .env.example .env
 TWILIO_ACCOUNT_SID=your_account_sid
 TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_CALLER_ID=+1234567890  # Your Twilio phone number
-BASE_URL=https://your-ngrok-url.ngrok.io  # For webhooks
+BASE_URL=https://your-ngrok-url.ngrok-free.app  # For webhooks (HTTPS)
 ```
 
 ### 3. Expose Webhooks with ngrok
 
 ```bash
-# Install ngrok: https://ngrok.com/download
+# Install ngrok
+# macOS (Homebrew): brew install ngrok/ngrok/ngrok
+# Linux/Windows: https://ngrok.com/download
+
 ngrok http 8000
 ```
 
-Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`) and update `BASE_URL` in `.env`
+Copy the HTTPS URL (e.g., `https://abc123.ngrok-free.app`) and update `BASE_URL` in `.env`, then restart the server.
 
 ### 4. Make Outbound Calls
 
@@ -182,7 +244,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
 
 ```json
 {
-  "agent_reply": "Hi David! I'm the agent from Alta. We help companies increase sales with AI agents. Is this a good time to talk? Please answer yes or no.",
+  "agent_reply": "Hi David! I'm the agent from Alta. We help companies increase sales with AI agents. Is this a good time to talk? Please answer ONLY yes or no.",
   "action": null,
   "action_payload": null
 }
