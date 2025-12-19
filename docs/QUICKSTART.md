@@ -47,7 +47,7 @@ curl -X POST "http://127.0.0.1:8000/agent/turn" \
 
 ```json
 {
-  "agent_reply": "Hi Roy! I'm the agent from Alta. We help companies increase sales with AI agents. Is this a good time to talk? Please answer ONLY yes or no.",
+  "agent_reply": "Hi Roy! I'm the agent from Habari's Sales Copnamy. We help companies increase sales with AI agents. Is this a good time to talk? Please answer ONLY yes or no.",
   "action": null,
   "action_payload": null
 }

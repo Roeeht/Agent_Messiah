@@ -54,7 +54,7 @@ def _safe_test_config(monkeypatch, request):
                 name = None
             who = name or "there"
             return (
-                f"Hi {who}! I'm the agent from Alta. We help companies increase sales with AI agents. "
+                f"Hi {who}! I'm the agent from Habari's Sales Copnamy. We help companies increase sales with AI agents. "
                 "Is this a good time to talk? Please answer ONLY yes or no."
             )
 
@@ -62,7 +62,7 @@ def _safe_test_config(monkeypatch, request):
             text = (last_user_utterance or "").strip().lower()
             if "who are you" in text:
                 return (
-                    "I'm Messiah, an AI agent from Alta. We help sales teams increase sales with AI agents.",
+                    "I'm Messiah, an AI agent from Habari's Sales Copnamy. We help sales teams increase sales with AI agents.",
                     None,
                     None,
                 )

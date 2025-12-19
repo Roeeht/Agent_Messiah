@@ -16,7 +16,7 @@ This repo is intentionally set up to run locally with a voice-calling-first work
 
 ## Overview
 
-Agent Messiah is an outbound calling solution that enables Alta to run Hebrew-speaking sales calls. The system features:
+Agent Messiah is an outbound calling solution that enables Habari's Sales Copnamy to run Hebrew-speaking sales calls. The system features:
 
 - **🧠 OpenAI GPT-4o-mini integration** for natural, context-aware agent conversations (English internally)
 - **🌍 HE↔EN translation pipeline** so callers always hear Hebrew while internal logic stays English-only
@@ -27,7 +27,7 @@ Agent Messiah is an outbound calling solution that enables Alta to run Hebrew-sp
 
 ## Assumptions & Scope
 
-- Voice-first product: I assumed the primary deliverable is a Hebrew outbound *voice-calling* agent (Twilio), not a text-first chat product. A text endpoint (`POST /agent/turn`) exists mainly for debugging and quick iteration, but the default user path is voice calling.
+- Voice-first product: I assumed the primary deliverable is a Hebrew outbound _voice-calling_ agent (Twilio), not a text-first chat product. A text endpoint (`POST /agent/turn`) exists mainly for debugging and quick iteration, but the default user path is voice calling.
 - Leads are hard-coded: I assumed a lightweight local-dev workflow where leads are predefined in code (see app/leads_store.py), rather than imported from an external CRM or database.
 - Local development environment: The setup and testing workflow assumes local development (tested on macOS) with a public HTTPS tunnel (ngrok) for Twilio webhooks.
 - LLM-only behavior: The agent runs as LLM-only (no rule-based fallback) and expects `OPENAI_API_KEY` for real voice calls (LLM + transcription).
@@ -252,7 +252,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
 
 ```json
 {
-  "agent_reply": "Hi David! I'm the agent from Alta. We help companies increase sales with AI agents. Is this a good time to talk? Please answer ONLY yes or no.",
+  "agent_reply": "Hi David! I'm the agent from Habari's Sales Copnamy. We help companies increase sales with AI agents. Is this a good time to talk? Please answer ONLY yes or no.",
   "action": null,
   "action_payload": null
 }
@@ -389,7 +389,7 @@ pytest tests/test_api_routes.py -v
 
 The agent follows this conversation pattern:
 
-1. **Greeting**: Introduces Alta and asks about lead handling
+1. **Greeting**: Introduces Habari's Sales Copnamy and asks about lead handling
 2. **Qualifying**: 1-3 questions about SDRs and current processes
 3. **Positive Response**: Offers 2 meeting slots
 4. **Slot Selection**: Books meeting and confirms
@@ -504,6 +504,7 @@ TWILIO_CALLER_ID=+1234567890
 # Application Settings
 DEBUG=True
 ```
+
 ## Potential Improvements
 
 - Import leads from CSV:
@@ -518,7 +519,6 @@ DEBUG=True
   - Validate Twilio signatures for all webhooks, and restrict debug endpoints in production.
 - Better observability:
   - Add a simple call timeline view (or export) using the existing debug events for easier diagnosis.
- 
 
 ## Technologies Used
 
@@ -546,7 +546,7 @@ DEBUG=True
 ### Why Hebrew-First?
 
 - Target market in Israel
-- Alta's primary audience
+- Habari's Sales Copnamy's primary audience
 - Demonstrates localization capability
 
 ## License
@@ -555,7 +555,7 @@ This is a home assignment project for demonstration purposes.
 
 ## Author
 
-Built as a home assignment for the AI Solution Engineer role at Alta.
+Built as a home assignment for the AI Solution Engineer role at Habari's Sales Copnamy.
 
 ---
 

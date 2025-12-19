@@ -54,8 +54,8 @@ def test_agent_turn_who_are_you():
     assert response.status_code == 200
     data = response.json()
     
-    # Should mention Alta
-    assert "Alta" in data["agent_reply"]
+    # Should mention Habari's Sales Copnamy
+    assert "Habari's Sales Copnamy" in data["agent_reply"]
     assert data["action"] is None
 
 
