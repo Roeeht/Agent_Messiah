@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Agent Messiah API",
-    description="Production-Ready AI Sales Agent for Habari's Sales Copnamy",
+    description="Production-Ready AI Sales Agent for Habari's Sales Company",
     version="2.0.0",
     lifespan=lifespan,
 )

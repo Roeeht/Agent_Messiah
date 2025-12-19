@@ -72,8 +72,8 @@ Choose the right model for your needs:
 
 The agent is defined with a comprehensive system prompt that includes:
 
-- **Persona**: AI sales agent (English internally) working for Habari's Sales Copnamy
-- **Company info**: Habari's Sales Copnamy provides AI solutions for SDR teams
+- **Persona**: AI sales agent (English internally) working for Habari's Sales Company
+- **Company info**: Habari's Sales Company provides AI solutions for SDR teams
 - **Conversation guidelines**: Short, professional, friendly
 - **Critical language rule**: The model output must be English-only (caller Hebrew is produced by translation)
 - **Conversation flow**: Greeting → Pitch → Qualify → Offer Meeting → Book
@@ -104,7 +104,7 @@ Note: The LLM outputs English-only. In the Twilio voice flow, user speech is tra
 ```bash
 # Turn 1
 User: "Hello"
-Agent: "Hi! I'm the agent from Habari's Sales Copnamy. We help companies increase sales with AI agents. Is this a good time to talk? Please answer yes or no."
+Agent: "Hi! I'm the agent from Habari's Sales Company. We help companies increase sales with AI agents. Is this a good time to talk? Please answer yes or no."
 
 # Turn 2
 User: "Yes"
@@ -221,7 +221,7 @@ All conversations are logged automatically. Check the server logs to see:
 Edit `app/llm_agent.py` to customize the agent's behavior:
 
 ```python
-SYSTEM_PROMPT = """You are an AI sales agent working for Habari's Sales Copnamy.
+SYSTEM_PROMPT = """You are an AI sales agent working for Habari's Sales Company.
 
 [Your custom instructions here]
 """

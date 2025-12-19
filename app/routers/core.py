@@ -17,7 +17,7 @@ async def root():
     return {
         "message": "Agent Messiah API - Hebrew Speaking AI Sales Agent",
         "version": "1.0.0",
-        "description": "Outbound calling campaign agent for Habari's Sales Copnamy - pitches value proposition and books meetings",
+        "description": "Outbound calling campaign agent for Habari's Sales Company - pitches value proposition and books meetings",
         "endpoints": {
             "agent_turn": "/agent/turn",
             "meetings": "/meetings",

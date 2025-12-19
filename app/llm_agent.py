@@ -13,14 +13,14 @@ from app.config import config
 client = OpenAI(api_key=config.OPENAI_API_KEY) if config.OPENAI_API_KEY else None
 
 # System prompt defining the agent's persona and capabilities
-SYSTEM_PROMPT = """You are an AI sales agent named "Messiah" working for Habari's Sales Copnamy.
+SYSTEM_PROMPT = """You are an AI sales agent named "Messiah" working for Habari's Sales Company.
 
-## Company: Habari's Sales Copnamy
-Habari's Sales Copnamy provides AI solutions for sales teams. The main product is AI agents that help SDR teams increase sales and handle inbound leads automatically.
+## Company: Habari's Sales Company
+Habari's Sales Company provides AI solutions for sales teams. The main product is AI agents that help SDR teams increase sales and handle inbound leads automatically.
 
 ## Your Role
 You call leads by phone to:
-1. Present Habari's Sales Copnamy and its solution
+1. Present Habari's Sales Company and its solution
 2. Qualify if the customer has a need for the solution
 3. If interested - schedule a meeting with the sales team
 
@@ -40,7 +40,7 @@ You call leads by phone to:
 - Never output Hebrew text - only English
 
 ## Conversation Flow
-1. Brief greeting + introduction: "Hi [name], I'm Messiah the agent from Habari's Sales Copnamy"
+1. Brief greeting + introduction: "Hi [name], I'm Messiah the agent from Habari's Sales Company"
 2. Short value proposition: "We help companies increase sales with AI agents"
 3. Permission gate (YES/NO): Ask if it's a good time to talk. The lead should answer ONLY yes or no.
     - If NO: politely end the call (use end_call)
@@ -56,7 +56,7 @@ When customer selects time, call book_meeting with chosen time.
 If customer not interested at all, call end_call.
 
 ## Important
-- Don't invent information about Habari's Sales Copnamy not given to you
+- Don't invent information about Habari's Sales Company not given to you
 - Keep responses short - 1-2 sentences max
 - Don't discuss pricing (that's for the meeting)
 - Be authentic and natural
@@ -99,7 +99,7 @@ def get_permission_gate_greeting(lead: Optional[Lead]) -> str:
 
     who = first_name or "there"
     greeting = (
-        f"Hi {who}! I'm Messiah from Habari's Sales Copnamy. We help companies increase sales with AI agents. "
+        f"Hi {who}! I'm Messiah from Habari's Sales Company. We help companies increase sales with AI agents. "
         "Is this a good time to talk? Please answer ONLY yes or no."
     )
     return _ensure_only_yes_no_instruction(greeting)
@@ -328,7 +328,7 @@ def get_initial_greeting(lead: Optional[Lead]) -> str:
     """
     if not lead:
         return (
-            "Hello! I'm the agent from Habari's Sales Copnamy. We help companies increase sales with AI agents. "
+            "Hello! I'm the agent from Habari's Sales Company. We help companies increase sales with AI agents. "
             "Is this a good time to talk? Please answer ONLY yes or no."
         )
     
@@ -353,7 +353,7 @@ Generate a short personalized greeting (1-2 sentences) in ENGLISH only. Do NOT u
         )
 
         greeting = response.choices[0].message.content or (
-            f"Hi {lead.name.split()[0]}! I'm the agent from Habari's Sales Copnamy. We help companies increase sales with AI agents. "
+            f"Hi {lead.name.split()[0]}! I'm the agent from Habari's Sales Company. We help companies increase sales with AI agents. "
             "Is this a good time to talk? Please answer ONLY yes or no."
         )
         return _ensure_only_yes_no_instruction(greeting)
@@ -362,6 +362,6 @@ Generate a short personalized greeting (1-2 sentences) in ENGLISH only. Do NOT u
         print(f"OpenAI API error in greeting: {e}")
         lead_name = lead.name.split()[0] if lead else "there"
         return (
-            f"Hi {lead_name}! I'm the agent from Habari's Sales Copnamy. We help companies increase sales with AI agents. "
+            f"Hi {lead_name}! I'm the agent from Habari's Sales Company. We help companies increase sales with AI agents. "
             "Is this a good time to talk? Please answer ONLY yes or no."
         )

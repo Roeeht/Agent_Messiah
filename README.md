@@ -16,7 +16,7 @@ This repo is intentionally set up to run locally with a voice-calling-first work
 
 ## Overview
 
-Agent Messiah is an outbound calling solution that enables Habari's Sales Copnamy to run Hebrew-speaking sales calls. The system features:
+Agent Messiah is an outbound calling solution that enables Habari's Sales Company to run Hebrew-speaking sales calls. The system features:
 
 - **🧠 OpenAI GPT-4o-mini integration** for natural, context-aware agent conversations (English internally)
 - **🌍 HE↔EN translation pipeline** so callers always hear Hebrew while internal logic stays English-only
@@ -252,7 +252,7 @@ curl -X POST "http://localhost:8000/agent/turn" \
 
 ```json
 {
-  "agent_reply": "Hi David! I'm the agent from Habari's Sales Copnamy. We help companies increase sales with AI agents. Is this a good time to talk? Please answer ONLY yes or no.",
+  "agent_reply": "Hi David! I'm the agent from Habari's Sales Company. We help companies increase sales with AI agents. Is this a good time to talk? Please answer ONLY yes or no.",
   "action": null,
   "action_payload": null
 }
@@ -389,7 +389,7 @@ pytest tests/test_api_routes.py -v
 
 The agent follows this conversation pattern:
 
-1. **Greeting**: Introduces Habari's Sales Copnamy and asks about lead handling
+1. **Greeting**: Introduces Habari's Sales Company and asks about lead handling
 2. **Qualifying**: 1-3 questions about SDRs and current processes
 3. **Positive Response**: Offers 2 meeting slots
 4. **Slot Selection**: Books meeting and confirms
@@ -546,7 +546,7 @@ DEBUG=True
 ### Why Hebrew-First?
 
 - Target market in Israel
-- Habari's Sales Copnamy's primary audience
+- Habari's Sales Company's primary audience
 - Demonstrates localization capability
 
 ## License
@@ -555,7 +555,7 @@ This is a home assignment project for demonstration purposes.
 
 ## Author
 
-Built as a home assignment for the AI Solution Engineer role at Habari's Sales Copnamy.
+Built as a home assignment for the AI Solution Engineer role at Habari's Sales Company.
 
 ---
 

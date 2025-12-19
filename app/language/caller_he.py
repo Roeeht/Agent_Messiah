@@ -14,7 +14,7 @@ CALLER_MESSAGES: Dict[str, str] = {
     # Greetings
     "greeting_default": "שלום! אני הסוכן משיח מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכנים חכמים."
 ,
-    "greeting_with_name": "שלום {name}! אני משיח הסוכן מHabari's Sales Copnamy. איך אתה? ",
+    "greeting_with_name": "שלום {name}! אני משיח הסוכן מHabari's Sales Company. איך אתה? ",
 
     # Permission gate (first question)
     "permission_ask": "שלום! אני הסוכן משיח מאלטה. אנחנו עוזרים לחברות להגדיל מכירות עם סוכנים חכמים. האם זה זמן טוב לדבר? בבקשה ענה רק כן או לא.",

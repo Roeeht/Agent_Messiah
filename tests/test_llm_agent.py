@@ -34,7 +34,7 @@ def test_system_prompt_contains_key_info():
     prompt = llm_agent.SYSTEM_PROMPT
     
     # Check for key elements
-    assert "Habari's Sales Copnamy" in prompt
+    assert "Habari's Sales Company" in prompt
     assert "AI" in prompt
     assert "ONLY in English" in prompt or "English" in prompt
     assert "translated" in prompt.lower()
@@ -175,7 +175,7 @@ def test_get_initial_greeting_with_lead(mock_client, sample_lead):
     # Mock OpenAI response
     mock_response = MagicMock()
     mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "Hi David! I'm the agent from Habari's Sales Copnamy. How do you handle inbound leads today?"
+    mock_response.choices[0].message.content = "Hi David! I'm the agent from Habari's Sales Company. How do you handle inbound leads today?"
     
     mock_client.chat.completions.create.return_value = mock_response
     
@@ -185,7 +185,7 @@ def test_get_initial_greeting_with_lead(mock_client, sample_lead):
     assert isinstance(greeting, str)
     assert len(greeting) > 0
     # Should be personalized
-    assert "דוד" in greeting or "Habari's Sales Copnamy" in greeting.lower()
+    assert "דוד" in greeting or "Habari's Sales Company" in greeting.lower()
 
 
 def test_get_initial_greeting_without_lead():
@@ -195,7 +195,7 @@ def test_get_initial_greeting_without_lead():
     # Verify generic greeting
     assert isinstance(greeting, str)
     assert len(greeting) > 0
-    assert "Habari's Sales Copnamy" in greeting
+    assert "Habari's Sales Company" in greeting
 
 
 @patch('app.llm_agent.client')
