@@ -61,7 +61,7 @@ class Config:
     # If no voice is specified, Twilio may use a default voice that doesn't support Hebrew well.
     TWILIO_TTS_VOICE: str = os.getenv(
         "TWILIO_TTS_VOICE",
-        "Google.he-IL-Standard-A" if CALLER_LANGUAGE.startswith("he") else "",
+        "Google.he-IL-Wavenet-A" if CALLER_LANGUAGE.startswith("he") else "",
     )
     
     # Security
